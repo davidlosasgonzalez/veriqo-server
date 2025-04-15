@@ -1,8 +1,13 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import {
+    ApiTags,
+    ApiOperation,
+    ApiBody,
+    ApiResponse,
+    ApiParam,
+} from '@nestjs/swagger';
 import { ExecuteValidatorDto } from './dto/execute-validator.dto';
 import { ValidatorAgentService } from './validator-agent.service';
-import { AgentFinding } from '@/database/entities/agent-findings.entity';
 import { DataResponse } from '@/shared/types/base-response.type';
 import { ValidationFinding } from '@/shared/types/validation-finding.type';
 
@@ -29,16 +34,17 @@ export class ValidatorAgentController {
                     {
                         id: 'bbde9314-5011-46e0-aea1-f4bcae91e5c3',
                         claim: 'El número primo más pequeño es 1',
-                        type: 'factual_error',
+                        category: 'factual_error',
                         summary: '1 no es primo',
                         explanation:
                             'Por definición, un número primo es mayor que 1.',
                         suggestion: 'Sustituye 1 por 2.',
                         keywords: ['número primo', 'matemáticas'],
-                        synonyms: ['número natural mayor que 1'],
+                        synonyms: {
+                            'número primo': ['divisible solo por 1 y sí mismo'],
+                        },
                         needsFactCheck: true,
-                        createdAt: '2025-04-14T12:00:00.000Z',
-                        updatedAt: '2025-04-14T12:00:00.000Z',
+                        searchQuery: '"número primo más pequeño"',
                     },
                 ],
             },
@@ -60,27 +66,29 @@ export class ValidatorAgentController {
 
     @Get('findings')
     @ApiOperation({
-        summary: 'Devuelve todos los findings detectados por ValidatorAgent',
+        summary:
+            'Devuelve todos los hallazgos generados por el ValidatorAgent.',
     })
-    async getFindings(): Promise<DataResponse<AgentFinding[]>> {
+    async getAllFindings(): Promise<DataResponse<ValidationFinding[]>> {
         const findings = await this.validatorAgentService.getAllFindings();
-
         return {
             status: 'ok',
-            message: 'Findings recuperados correctamente.',
+            message: 'Hallazgos encontrados correctamente.',
             data: findings,
         };
     }
 
-    @Get('test')
-    @ApiOperation({
-        summary: 'Comprueba si el agente está activo (modo desarrollo).',
-    })
-    async test(): Promise<DataResponse<string>> {
+    @Get(':id')
+    @ApiOperation({ summary: 'Devuelve un hallazgo concreto por su ID.' })
+    @ApiParam({ name: 'id', example: 'uuid-válido-del-finding' })
+    async getFindingById(
+        @Param('id') id: string,
+    ): Promise<DataResponse<ValidationFinding | null>> {
+        const finding = await this.validatorAgentService.getFindingById(id);
         return {
             status: 'ok',
-            message: 'El agente está activo.',
-            data: 'ValidatorAgent operativo 🧠',
+            message: finding ? 'Hallazgo recuperado.' : 'No encontrado.',
+            data: finding,
         };
     }
 }

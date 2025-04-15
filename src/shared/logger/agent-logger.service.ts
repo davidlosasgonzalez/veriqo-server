@@ -19,14 +19,22 @@ export class AgentLoggerService extends Logger {
         outputResult: string,
         tokensInput: number,
         tokensOutput: number,
+        options?: {
+            searchQuery?: string;
+            engineUsed?: 'brave' | 'google' | 'fallback';
+            totalResults?: number;
+        },
     ): Promise<void> {
         const log = this.agentLogRepo.create({
-            agentName: agentName,
+            agentName,
             model,
-            inputPrompt: inputPrompt,
-            outputResult: outputResult,
-            tokensInput: tokensInput,
-            tokensOutput: tokensOutput,
+            inputPrompt,
+            outputResult,
+            tokensInput,
+            tokensOutput,
+            searchQuery: options?.searchQuery,
+            engineUsed: options?.engineUsed,
+            totalResults: options?.totalResults,
         });
 
         await this.agentLogRepo.save(log);

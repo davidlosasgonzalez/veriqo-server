@@ -89,4 +89,10 @@ export class AgentVerificationService {
             order: { createdAt: 'DESC' },
         });
     }
+
+    async getAllVerifications(): Promise<AgentVerification[]> {
+        return this.verificationRepo.find({
+            order: { createdAt: 'DESC' },
+        });
+    }
 }

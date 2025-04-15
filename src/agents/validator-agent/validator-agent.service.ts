@@ -93,6 +93,26 @@ export class ValidatorAgentService {
         return result;
     }
 
+    async getFindingById(id: string): Promise<ValidationFinding | null> {
+        const entity = await this.agentFindingService.getFindingById(id);
+        if (!entity) return null;
+
+        return {
+            id: entity.id,
+            claim: entity.claim,
+            category: entity.category,
+            summary: entity.summary ?? '',
+            explanation: entity.explanation ?? '',
+            suggestion: entity.suggestion ?? '',
+            keywords: entity.keywords ?? [],
+            synonyms: entity.synonyms ?? {},
+            needsFactCheck: entity.needsFactCheck ?? false,
+            searchQuery: entity.searchQuery ?? '',
+            namedEntities: entity.namedEntities ?? [],
+            locations: entity.locations ?? [],
+        };
+    }
+
     async getAllFindings(): Promise<AgentFinding[]> {
         return this.agentFindingService.getAllFindings();
     }

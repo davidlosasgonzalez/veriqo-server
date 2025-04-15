@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ChatCompletionMessageParam } from 'openai/resources/chat';
+import {
+    ChatCompletionMessageParam,
+    ChatCompletionSystemMessageParam,
+    ChatCompletionUserMessageParam,
+} from 'openai/resources/chat';
 import { ExecuteFactCheckerDto } from './dto/execute-fact-checker.dto';
 import { ClaudeChatService } from '@/shared/ai/claude-chat.service';
 import { EventBusService } from '@/shared/events/event-bus.service';
@@ -11,6 +15,7 @@ import { AgentVerificationService } from '@/shared/facts/agent-verification.serv
 import { AgentLoggerService } from '@/shared/logger/agent-logger.service';
 import { AgentPromptService } from '@/shared/prompts/agent-prompt.service';
 import { BraveSearchService } from '@/shared/search/brave-search.service';
+import { GoogleSearchService } from '@/shared/search/google-search.service';
 import { VerificationVerdict } from '@/shared/types/verification-verdict.type';
 
 type LastResult = {
@@ -33,13 +38,14 @@ export class FactCheckerAgentService {
         private readonly eventBus: EventBusService,
         private readonly factService: AgentFactService,
         private readonly brave: BraveSearchService,
+        private readonly google: GoogleSearchService,
         private readonly claude: ClaudeChatService,
         private readonly promptService: AgentPromptService,
         private readonly verificationService: AgentVerificationService,
     ) {}
 
     async execute(dto: ExecuteFactCheckerDto): Promise<LastResult> {
-        const { claim, context, searchQuery, findingId } = dto;
+        const { claim, context, findingId } = dto;
 
         const cached = await this.factService.getFactByClaim(claim);
         if (cached) {
@@ -53,15 +59,28 @@ export class FactCheckerAgentService {
                 reasoning: verification?.reasoning ?? '[Sin explicación]',
                 sources_retrieved: verification?.sourcesRetrieved ?? [],
                 sources_used: verification?.sourcesUsed ?? [],
-                findingId: verification?.findingId ?? findingId,
+                findingId,
             };
             this.lastResult = result;
             return result;
         }
 
-        const query = searchQuery?.trim().length ? searchQuery : claim;
+        let braveResults: any[] = [];
+        try {
+            braveResults = await this.brave.search(claim);
+        } catch (err) {
+            console.log(
+                '[BraveSearchService] Fallback automático a Google Search.',
+            );
+            braveResults = await this.tryGoogleFallback(claim);
+        }
 
-        const braveResults = await this.brave.search(query);
+        if (!braveResults.length) {
+            console.log(
+                '[FactCheckerAgent] ❌ No se obtuvieron resultados con Brave ni Google.',
+            );
+        }
+
         const allUrls = braveResults.map((s) => s.url);
         const topUrls = allUrls.slice(0, 5);
 
@@ -69,15 +88,18 @@ export class FactCheckerAgentService {
             await this.promptService.getPromptForAgent('fact_checker_agent');
 
         const sourcesAsText = braveResults
-            .map((s, i) => `${i + 1}. ${s.url}\n${s.snippet ?? ''}`)
-            .join('\n\n');
+            .map((s, i) => `${i + 1}. ${s.url} ${s.snippet ?? ''}`)
+            .join('');
 
         const messages: ChatCompletionMessageParam[] = [
-            { role: 'system', content: systemPrompt },
+            {
+                role: 'system',
+                content: systemPrompt,
+            } as ChatCompletionSystemMessageParam,
             {
                 role: 'user',
                 content: `Texto a verificar:\n${claim}\n\nFuentes:\n${sourcesAsText}`,
-            },
+            } as ChatCompletionUserMessageParam,
         ];
 
         let status: VerificationVerdict = 'unknown';
@@ -85,7 +107,7 @@ export class FactCheckerAgentService {
         let usedUrls: string[] = [];
 
         try {
-            const response: string = await this.claude.chat(messages);
+            const response = await this.claude.chat(messages);
             const parsed = JSON.parse(response);
 
             if (
@@ -98,16 +120,24 @@ export class FactCheckerAgentService {
                 status = parsed.status;
                 explanation = parsed.reasoning || explanation;
 
-                if (Array.isArray(parsed.sources_used)) {
-                    usedUrls = parsed.sources_used.filter(
-                        (s) => typeof s === 'string',
-                    );
+                // 🔍 Autoajuste si hay contradicción entre status y reasoning
+                if (
+                    status === 'false' &&
+                    explanation.match(/coinciden|corresponden|se alinean/i)
+                ) {
+                    status = 'possibly_true';
+                }
+
+                if (
+                    Array.isArray(parsed.sources_used) &&
+                    parsed.sources_used.every((s) => typeof s === 'string')
+                ) {
+                    usedUrls = parsed.sources_used;
                 }
             }
         } catch (err) {
             this.logger.error(
-                `[FactCheckerAgent] Error de IA: ${err.message}`,
-                err.stack,
+                `[FactCheckerAgent] Claude parsing error: ${err.message}`,
             );
         }
 
@@ -150,7 +180,7 @@ export class FactCheckerAgentService {
 
         await this.logger.logUse(
             'FactCheckerAgent',
-            'brave_search+claude',
+            'brave+google+claude',
             claim,
             JSON.stringify(result),
             0,
@@ -166,6 +196,31 @@ export class FactCheckerAgentService {
         return result;
     }
 
+    private async tryGoogleFallback(claim: string) {
+        const queries = [
+            claim,
+            claim.replace(/[^\w\s]/gi, '').trim(),
+            claim.split(' ').slice(0, 5).join(' '),
+        ];
+
+        for (const q of queries) {
+            const results = await this.google.search(q);
+            if (results.length) {
+                console.log(
+                    '[GoogleSearchService] ✅ Resultados obtenidos de Google:',
+                    results.length,
+                );
+                return results;
+            } else {
+                console.log(
+                    '[GoogleSearchService] ⚠️ Google no devolvió resultados.',
+                );
+            }
+        }
+
+        return [];
+    }
+
     getLastResult(): LastResult | null {
         return this.lastResult;
     }
@@ -173,12 +228,10 @@ export class FactCheckerAgentService {
     async handleFactualCheckRequired(
         payload: AgentEventPayload<FactualCheckRequiredData>,
     ): Promise<void> {
-        const { claim, context, searchQuery, findingId } = payload.data;
-
+        const { claim, context, findingId } = payload.data;
         await this.execute({
             claim,
             context: context ?? 'context_not_provided',
-            searchQuery,
             findingId,
         });
     }

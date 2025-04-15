@@ -114,4 +114,10 @@ export class AgentFindingService {
     async getAllFindings(): Promise<AgentFinding[]> {
         return this.findingRepo.find({ order: { createdAt: 'DESC' } });
     }
+
+    async getFindingById(id: string): Promise<AgentFinding | null> {
+        return this.findingRepo.findOne({
+            where: { id },
+        });
+    }
 }

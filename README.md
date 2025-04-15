@@ -18,6 +18,7 @@ Diseñado para escalar y conectarse con frontend, sistemas de reputación, medio
 ## ⚙️ Instalación y puesta en marcha
 
 ### Requisitos:
+
 - Node.js 18+
 - MySQL (5.7+)
 - `.env` configurado (ver `.env.example`)
@@ -65,29 +66,35 @@ src/
 ### 🧪 `ValidatorAgent`
 
 #### Finalidad:
+
 Detectar afirmaciones incorrectas, ambiguas, exageradas o sospechosas dentro de un texto.
 
 #### Cómo funciona:
+
 1. Recibe texto plano.
 2. Utiliza modelos LLM (GPT-4o) para identificar afirmaciones relevantes.
 3. Clasifica cada afirmación por tipo de posible error (factual, ambigüedad, exageración, etc.).
 4. Decide si requiere una verificación factual profunda.
 
 #### Objetivos:
+
 - Evitar sobrecarga en el sistema.
 - Ser un primer filtro inteligente.
 - Detectar patrones comunes de error.
 
 #### Limitaciones:
+
 - No verifica con fuentes externas.
 - Puede identificar afirmaciones que son subjetivas si no se entrena el prompt cuidadosamente.
 
 ### 📚 `FactCheckerAgent`
 
 #### Finalidad:
+
 Verificar afirmaciones concretas con **evidencia real** de fuentes externas y argumentación detallada.
 
 #### Cómo funciona:
+
 1. Recibe una afirmación.
 2. Genera una query de búsqueda a partir del texto.
 3. Consulta Brave Search (y Google como fallback) para extraer URLs relevantes.
@@ -96,11 +103,13 @@ Verificar afirmaciones concretas con **evidencia real** de fuentes externas y ar
 6. Devuelve veredicto: **Verdadero / Falso / Parcial / No Verificable**, con reasoning.
 
 #### Objetivos:
+
 - Contrastación efectiva de información en tiempo real.
 - Trazabilidad de cada verificación.
 - Transparencia y justificabilidad.
 
 #### Limitaciones:
+
 - Depende de la calidad de resultados en buscadores.
 - No puede verificar hechos demasiado nuevos sin fuentes públicas.
 - Requiere prompts bien afinados para evitar respuestas genéricas.
@@ -113,41 +122,54 @@ Documentación Swagger automática en `/api`
 
 ### Validator Agent
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| `POST` | `/agents/validator` | Detecta errores o ambigüedades en un texto. |
-| `GET`  | `/agents/validator/findings` | Lista de hallazgos registrados. |
+| Método | Ruta                         | Descripción                                 |
+| ------ | ---------------------------- | ------------------------------------------- |
+| `POST` | `/agents/validator`          | Detecta errores o ambigüedades en un texto. |
+| `GET`  | `/agents/validator/findings` | Lista de hallazgos registrados.             |
 
 #### Ejemplo de request:
+
 ```json
 {
-  "text": "El sol es más pequeño que la Tierra."
+    "text": "El sol es más pequeño que la Tierra."
 }
 ```
 
 ### Fact Checker Agent
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| `GET` | `/agents/fact-checker/last` | Última verificación realizada. |
-| `GET` | `/agents/fact-checker/facts/:claim` | Verificación puntual de una afirmación. |
-| `GET` | `/agents/fact-checker/history` | Historial completo de verificaciones. |
-| `GET` | `/agents/fact-checker/logs` | Logs del sistema por agente/modelo. |
-| `GET` | `/agents/fact-checker/prompts` | Prompts actuales usados por el sistema. |
-| `GET` | `/agents/fact-checker/sources` | Fuentes web utilizadas en verificaciones. |
-| `GET` | `/agents/fact-checker/insights` | Estadísticas agregadas (veredictos, tipos). |
+| Método | Ruta                                | Descripción                                 |
+| ------ | ----------------------------------- | ------------------------------------------- |
+| `GET`  | `/agents/fact-checker/last`         | Última verificación realizada.              |
+| `GET`  | `/agents/fact-checker/facts/:claim` | Verificación puntual de una afirmación.     |
+| `GET`  | `/agents/fact-checker/history`      | Historial completo de verificaciones.       |
+| `GET`  | `/agents/fact-checker/logs`         | Logs del sistema por agente/modelo.         |
+| `GET`  | `/agents/fact-checker/prompts`      | Prompts actuales usados por el sistema.     |
+| `GET`  | `/agents/fact-checker/sources`      | Fuentes web utilizadas en verificaciones.   |
+| `GET`  | `/agents/fact-checker/insights`     | Estadísticas agregadas (veredictos, tipos). |
 
 ## 📊 Base de datos — Estructura trazable
 
-| Tabla                      | Descripción |
-|----------------------------|-------------|
-| `agent_findings`           | Afirmaciones clasificadas por el validador. |
-| `agent_facts`              | Datos verificados con su resultado. |
-| `agent_verifications`      | Argumentación completa del modelo IA. |
-| `agent_sources`            | URLs externas reales usadas como prueba. |
-| `agent_prompts`            | Prompts base usados por agente. |
-| `agent_logs`               | Logs técnicos con modelo, tiempo y tokens. |
-| `agent_events`             | Eventos internos de flujo entre agentes. |
+| Tabla                 | Descripción                                 |
+| --------------------- | ------------------------------------------- |
+| `agent_findings`      | Afirmaciones clasificadas por el validador. |
+| `agent_facts`         | Datos verificados con su resultado.         |
+| `agent_verifications` | Argumentación completa del modelo IA.       |
+| `agent_sources`       | URLs externas reales usadas como prueba.    |
+| `agent_prompts`       | Prompts base usados por agente.             |
+| `agent_logs`          | Logs técnicos con modelo, tiempo y tokens.  |
+| `agent_events`        | Eventos internos de flujo entre agentes.    |
+
+## 🧩 Diseño de base de datos: profesional y normalizado
+
+La base de datos de Veriqo ha sido cuidadosamente diseñada para lograr un equilibrio entre trazabilidad semántica y eficiencia. Aunque se repiten campos como `claim` o `agent` en varias entidades, esto no representa una duplicación innecesaria, sino una **decisión consciente de diseño** para:
+
+- Garantizar la trazabilidad textual completa (útil en sistemas descentralizados o event-driven).
+- Evitar dependencias rígidas mediante claves foráneas, facilitando la evolución y análisis aislado de módulos.
+- Priorizar la transparencia y depuración humana durante la verificación de hechos.
+
+Se ha evaluado la posibilidad de sustituir algunos campos por IDs relacionales, pero se ha concluido que **el uso explícito de texto mejora la auditoría, la interoperabilidad y la legibilidad**, especialmente en entornos colaborativos con múltiples agentes inteligentes.
+
+> ⚖️ Veriqo está optimizado no solo para eficiencia técnica, sino también para claridad operativa y robustez evolutiva.
 
 ## 📈 ¿Por qué Veriqo marca diferencia?
 
@@ -165,7 +187,7 @@ Documentación Swagger automática en `/api`
 
 **David Losas González**
 Desarrollador full stack & formador técnico
-💼 [linkedin.com/in/david-losas-gonzález](https://www.linkedin.com/in/david-losas-gonzález-2ba888174)
+💼 [linkedin.com/in/david-losas-gonzález](https://www.linkedin.com/in/david-losas-gonzález)
 📧 david.losas.gonzalez@gmail.com
 
 > La IA es el futuro, pero sin verificación, no es confiable. Veriqo lleva la verdad al centro del proceso.

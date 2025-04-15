@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
     Entity,
     Column,
@@ -38,6 +38,28 @@ export class AgentLog {
     @ApiProperty()
     @Column('int', { default: 0, name: 'tokens_output' })
     tokensOutput: number;
+
+    @ApiPropertyOptional({ example: '"David Losas González" astronauta NASA' })
+    @Column({
+        type: 'varchar',
+        length: 512,
+        name: 'search_query',
+        nullable: true,
+    })
+    searchQuery?: string;
+
+    @ApiPropertyOptional({ example: 'brave' })
+    @Column({
+        type: 'varchar',
+        length: 16,
+        name: 'engine_used',
+        nullable: true,
+    })
+    engineUsed?: 'brave' | 'google' | 'fallback';
+
+    @ApiPropertyOptional({ example: 10 })
+    @Column({ type: 'int', name: 'total_results', nullable: true })
+    totalResults?: number;
 
     @ApiProperty()
     @CreateDateColumn({ name: 'created_at' })
