@@ -5,89 +5,121 @@ import {
     ChatCompletionUserMessageParam,
 } from 'openai/resources/chat';
 import { ExecuteFactCheckerDto } from './dto/execute-fact-checker.dto';
-import { ClaudeChatService } from '@/shared/ai/claude-chat.service';
 import { EventBusService } from '@/shared/events/event-bus.service';
-import { FactualCheckRequiredData } from '@/shared/events/payloads/factual-check-required.payload';
+import { FactualCheckRequiredEventPayload } from '@/shared/events/payloads/factual-check-required-event.payload';
 import { AgentEventPayload } from '@/shared/events/types/agent-event-payload.type';
 import { AgentEventType } from '@/shared/events/types/agent-event-type.enum';
-import { AgentFactService } from '@/shared/facts/agent-fact.service';
-import { AgentVerificationService } from '@/shared/facts/agent-verification.service';
+import { AgentFactService } from '@/shared/facts/services/agent-fact.service';
+import { AgentVerificationService } from '@/shared/facts/services/agent-verification.service';
+import { LlmRouterService } from '@/shared/llm/llm-router.service';
+import { ParsedLLMResponse } from '@/shared/llm/types/parsed-llm-response.type';
 import { AgentLoggerService } from '@/shared/logger/agent-logger.service';
 import { AgentPromptService } from '@/shared/prompts/agent-prompt.service';
-import { BraveSearchService } from '@/shared/search/brave-search.service';
-import { GoogleSearchService } from '@/shared/search/google-search.service';
+import { FallbackSearchService } from '@/shared/search/fallback-search.service';
+import { FactCheckerResult } from '@/shared/types/fact-checker-result.type';
+import { SearchEngineUsed } from '@/shared/types/search-engine-used.type';
 import { VerificationVerdict } from '@/shared/types/verification-verdict.type';
 
-type LastResult = {
-    claim: string;
-    status: VerificationVerdict;
-    sources: string[];
-    checkedAt: string;
-    reasoning: string;
-    sources_retrieved: string[];
-    sources_used: string[];
-    findingId?: string;
-};
-
+/**
+ * Servicio principal del agente FactChecker. Se encarga de buscar información,
+ * consultar al modelo LLM y emitir la verificación factual.
+ */
 @Injectable()
 export class FactCheckerAgentService {
-    private lastResult: LastResult | null = null;
+    private lastResult: FactCheckerResult | null = null;
 
     constructor(
         private readonly logger: AgentLoggerService,
         private readonly eventBus: EventBusService,
         private readonly factService: AgentFactService,
-        private readonly brave: BraveSearchService,
-        private readonly google: GoogleSearchService,
-        private readonly claude: ClaudeChatService,
+        private readonly ai: LlmRouterService,
         private readonly promptService: AgentPromptService,
         private readonly verificationService: AgentVerificationService,
+        private readonly fallbackSearch: FallbackSearchService,
     ) {}
 
-    async execute(dto: ExecuteFactCheckerDto): Promise<LastResult> {
-        const { claim, context, findingId } = dto;
+    /**
+     * Ejecuta el agente de verificación factual para un claim dado.
+     * @param executeFactCheckerDto Datos de entrada para el agente
+     * @returns Resultado completo de la verificación factual
+     */
+    async verifyClaim(
+        executeFactCheckerDto: ExecuteFactCheckerDto & {
+            normalizedClaim?: string;
+        },
+    ): Promise<FactCheckerResult> {
+        const { claim, findingId, normalizedClaim } = executeFactCheckerDto;
 
-        const cached = await this.factService.getFactByClaim(claim);
+        let engineUsed: SearchEngineUsed = 'unknown';
+
+        const factEquivalent =
+            await this.factService.findSimilarByEmbedding(claim);
+
+        if (factEquivalent) {
+            const verification = await this.verificationService.findByClaim(
+                factEquivalent.claim,
+            );
+
+            const result: FactCheckerResult = {
+                claim,
+                equivalentToClaim: factEquivalent.claim,
+                status: factEquivalent.status ?? 'unknown',
+                sources: factEquivalent.sources ?? [],
+                checkedAt: factEquivalent.updatedAt.toISOString(),
+                reasoning: verification?.reasoning ?? '[Sin explicación]',
+                sources_retrieved: verification?.sourcesRetrieved ?? [],
+                sources_used: verification?.sourcesUsed ?? [],
+                findingId,
+            };
+
+            this.lastResult = result;
+
+            await this.eventBus.emitEvent({
+                type: AgentEventType.FACTUAL_VERIFICATION_RESULT,
+                sourceAgent: 'FactCheckerAgent',
+                data: result,
+            });
+
+            return result;
+        }
+
+        const normalized =
+            normalizedClaim?.trim().toLowerCase() || claim.trim().toLowerCase();
+
+        const cached = await this.factService.findByNormalizedClaim(normalized);
+
         if (cached) {
             const verification =
-                await this.verificationService.getVerificationByClaim(claim);
-            const result: LastResult = {
+                await this.verificationService.findByClaim(claim);
+
+            const result: FactCheckerResult = {
                 claim: cached.claim,
-                status: cached.status as VerificationVerdict,
-                sources: cached.sources,
+                status: cached.status ?? 'unknown',
+                sources: cached.sources ?? [],
                 checkedAt: cached.updatedAt.toISOString(),
                 reasoning: verification?.reasoning ?? '[Sin explicación]',
                 sources_retrieved: verification?.sourcesRetrieved ?? [],
                 sources_used: verification?.sourcesUsed ?? [],
                 findingId,
             };
+
             this.lastResult = result;
+
             return result;
         }
 
-        let braveResults: any[] = [];
-        try {
-            braveResults = await this.brave.search(claim);
-        } catch (err) {
-            console.log(
-                '[BraveSearchService] Fallback automático a Google Search.',
-            );
-            braveResults = await this.tryGoogleFallback(claim);
-        }
+        const { results: retrievedResults, engineUsed: engine } =
+            await this.fallbackSearch.perform(claim);
 
-        if (!braveResults.length) {
-            console.log(
-                '[FactCheckerAgent] ❌ No se obtuvieron resultados con Brave ni Google.',
-            );
-        }
+        engineUsed = engine;
 
-        const allUrls = braveResults.map((s) => s.url);
+        const allUrls: string[] = retrievedResults.map((s) => s.url);
         const topUrls = allUrls.slice(0, 5);
 
         const systemPrompt =
-            await this.promptService.getPromptForAgent('fact_checker_agent');
+            await this.promptService.findPromptByAgent('fact_checker_agent');
 
-        const sourcesAsText = braveResults
+        const sourcesAsText = retrievedResults
             .map((s, i) => `${i + 1}. ${s.url} ${s.snippet ?? ''}`)
             .join('');
 
@@ -107,8 +139,12 @@ export class FactCheckerAgentService {
         let usedUrls: string[] = [];
 
         try {
-            const response = await this.claude.chat(messages);
-            const parsed = JSON.parse(response);
+            const response = await this.ai.chatWithAgent(
+                'factchecker',
+                messages,
+            );
+
+            const parsed = JSON.parse(response) as ParsedLLMResponse;
 
             if (
                 parsed &&
@@ -120,7 +156,6 @@ export class FactCheckerAgentService {
                 status = parsed.status;
                 explanation = parsed.reasoning || explanation;
 
-                // 🔍 Autoajuste si hay contradicción entre status y reasoning
                 if (
                     status === 'false' &&
                     explanation.match(/coinciden|corresponden|se alinean/i)
@@ -141,7 +176,7 @@ export class FactCheckerAgentService {
             );
         }
 
-        const cleanedSources = braveResults.map((s) => ({
+        const cleanedSources = retrievedResults.map((s) => ({
             url: s.url,
             domain: s.domain ?? 'unknown',
             snippet: s.snippet ?? undefined,
@@ -158,14 +193,19 @@ export class FactCheckerAgentService {
             findingId,
         );
 
-        await this.factService.saveFact(
+        await this.factService.create(
             'fact_checker_agent',
             claim,
             status,
             topUrls,
+            normalized,
         );
 
-        const result: LastResult = {
+        if (findingId) {
+            await this.eventBus.markAsProcessedByFindingId(findingId);
+        }
+
+        const result: FactCheckerResult = {
             claim,
             status,
             sources: topUrls,
@@ -178,16 +218,20 @@ export class FactCheckerAgentService {
 
         this.lastResult = result;
 
-        await this.logger.logUse(
+        await this.logger.create(
             'FactCheckerAgent',
-            'brave+google+claude',
+            'news+brave+google+claude',
             claim,
             JSON.stringify(result),
             0,
             0,
+            {
+                engineUsed,
+                totalResults: result?.sources_retrieved?.length ?? 0,
+            },
         );
 
-        await this.eventBus.emit({
+        await this.eventBus.emitEvent({
             type: AgentEventType.FACTUAL_VERIFICATION_RESULT,
             sourceAgent: 'FactCheckerAgent',
             data: result,
@@ -196,40 +240,22 @@ export class FactCheckerAgentService {
         return result;
     }
 
-    private async tryGoogleFallback(claim: string) {
-        const queries = [
-            claim,
-            claim.replace(/[^\w\s]/gi, '').trim(),
-            claim.split(' ').slice(0, 5).join(' '),
-        ];
-
-        for (const q of queries) {
-            const results = await this.google.search(q);
-            if (results.length) {
-                console.log(
-                    '[GoogleSearchService] ✅ Resultados obtenidos de Google:',
-                    results.length,
-                );
-                return results;
-            } else {
-                console.log(
-                    '[GoogleSearchService] ⚠️ Google no devolvió resultados.',
-                );
-            }
-        }
-
-        return [];
-    }
-
-    getLastResult(): LastResult | null {
+    /**
+     * Devuelve el último resultado procesado por el agente, si existe.
+     */
+    getLastResult(): FactCheckerResult | null {
         return this.lastResult;
     }
 
+    /**
+     * Maneja la recepción de un evento factual_check_required.
+     */
     async handleFactualCheckRequired(
-        payload: AgentEventPayload<FactualCheckRequiredData>,
+        payload: AgentEventPayload<FactualCheckRequiredEventPayload>,
     ): Promise<void> {
         const { claim, context, findingId } = payload.data;
-        await this.execute({
+
+        await this.verifyClaim({
             claim,
             context: context ?? 'context_not_provided',
             findingId,

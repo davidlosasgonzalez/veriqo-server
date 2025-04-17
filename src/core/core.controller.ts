@@ -1,101 +1,107 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { AgentFindingCategory } from '@/database/entities/agent-findings.entity';
-import { AgentFindingService } from '@/shared/facts/agent-finding.service';
-import { AgentVerificationService } from '@/shared/facts/agent-verification.service';
+import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import { AgentEvent } from './database/entities/agent-event.entity';
+import { AgentLog } from './database/entities/agent-log.entity';
+import { AgentPrompt } from './database/entities/agent-prompt.entity';
+import { AgentVerification } from './database/entities/agent-verification.entity';
+import { EventBusService } from '@/shared/events/event-bus.service';
+import { AgentFindingService } from '@/shared/facts/services/agent-finding.service';
+import { AgentVerificationService } from '@/shared/facts/services/agent-verification.service';
 import { AgentLoggerService } from '@/shared/logger/agent-logger.service';
-import { DataResponse } from '@/shared/types/base-response.type';
+import { AgentPromptService } from '@/shared/prompts/agent-prompt.service';
+import { DataResponse } from '@/shared/types/http-response.type';
 
-@ApiTags('System')
-@Controller('system')
+@ApiTags('core')
+@Controller('core')
 export class CoreController {
     constructor(
-        private readonly loggerService: AgentLoggerService,
-        private readonly verificationService: AgentVerificationService,
-        private readonly findingService: AgentFindingService,
+        private readonly logger: AgentLoggerService,
+        private readonly prompts: AgentPromptService,
+        private readonly events: EventBusService,
+        private readonly verification: AgentVerificationService,
+        private readonly findings: AgentFindingService,
     ) {}
 
-    @Get('log-summary')
+    /**
+     * Obtiene todos los logs técnicos generados por los agentes IA.
+     */
+    @Get('logs')
     @ApiOperation({
-        summary: 'Resumen del uso de motores de búsqueda y resultados',
+        summary: 'Obtener todos los logs registrados por los agentes',
     })
-    async getLogSummary(): Promise<DataResponse<any>> {
-        const allLogs = await this.loggerService.getAllLogs();
-
-        const engines: Record<string, number> = {};
-        const resultSums: Record<string, number> = {};
-
-        for (const log of allLogs) {
-            const engine = log.engineUsed ?? 'unknown';
-            engines[engine] = (engines[engine] ?? 0) + 1;
-            if (log.totalResults !== undefined) {
-                resultSums[engine] =
-                    (resultSums[engine] ?? 0) + log.totalResults;
-            }
-        }
-
-        const averageResults: Record<string, number> = {};
-        for (const engine of Object.keys(engines)) {
-            const total = engines[engine];
-            const totalFound = resultSums[engine] ?? 0;
-            averageResults[engine] = Number((totalFound / total).toFixed(2));
-        }
-
+    @ApiOkResponse({ type: [AgentLog] })
+    async getAgentLogs(): Promise<DataResponse<AgentLog[]>> {
+        const data = await this.logger.findAll();
         return {
             status: 'ok',
-            message: 'Resumen de logs.',
-            data: {
-                totalLogs: allLogs.length,
-                engines,
-                averageResults,
-            },
+            message: 'Logs obtenidos correctamente.',
+            data,
         };
     }
 
-    @Get('metrics')
+    /**
+     * Devuelve todos los prompts configurados por agente.
+     */
+    @Get('prompts')
     @ApiOperation({
-        summary: 'Métricas de cobertura factual y distribución de findings',
+        summary: 'Obtener todos los prompts activos por agente',
     })
-    @ApiResponse({
-        status: 200,
-        description: 'Métricas obtenidas correctamente.',
-    })
-    async getMetrics(): Promise<DataResponse<any>> {
-        const findings = await this.findingService.getAllFindings();
-        const verifications =
-            await this.verificationService.getAllVerifications();
-
-        const totalFindings = findings.length;
-        const needsFactCheck = findings.filter((f) => f.needsFactCheck).length;
-        const verifiedClaims = new Set(verifications.map((v) => v.claim)).size;
-        const pending = needsFactCheck - verifiedClaims;
-        const coverage =
-            needsFactCheck === 0 ? 1 : verifiedClaims / needsFactCheck;
-
-        const byCategory: Record<AgentFindingCategory, number> = {
-            factual_error: 0,
-            contradiction: 0,
-            ambiguity: 0,
-            reasoning: 0,
-            style: 0,
-            other: 0,
-        };
-
-        for (const f of findings) {
-            byCategory[f.category]++;
-        }
-
+    @ApiOkResponse({ type: [AgentPrompt] })
+    async getAgentPrompts(): Promise<DataResponse<AgentPrompt[]>> {
+        const data = await this.prompts.findAllPrompts();
         return {
             status: 'ok',
-            message: 'Métricas globales de verificación factual.',
-            data: {
-                totalFindings,
-                needsFactCheck,
-                verifiedClaims,
-                pending,
-                factualCoverage: `${(coverage * 100).toFixed(2)}%`,
-                byCategory,
-            },
+            message: 'Prompts obtenidos correctamente.',
+            data,
+        };
+    }
+
+    /**
+     * Devuelve todos los eventos registrados en el bus de agentes.
+     */
+    @Get('events')
+    @ApiOperation({
+        summary: 'Obtener todos los eventos emitidos por los agentes',
+    })
+    @ApiOkResponse({ type: [AgentEvent] })
+    async getAgentEvents(): Promise<DataResponse<AgentEvent[]>> {
+        const data = await this.events.findAllEvents();
+        return {
+            status: 'ok',
+            message: 'Eventos obtenidos correctamente.',
+            data,
+        };
+    }
+
+    /**
+     * Genera un resumen estadístico del uso de motores de búsqueda.
+     */
+    @Get('log-summary')
+    @ApiOperation({
+        summary: 'Obtener resumen del uso de motores de búsqueda',
+    })
+    async getLogSummary(): Promise<DataResponse<any>> {
+        const data = await this.logger.getStats();
+        return {
+            status: 'ok',
+            message: 'Resumen de logs obtenidos correctamente.',
+            data,
+        };
+    }
+
+    /**
+     * Devuelve métricas globales de verificación factual (hallazgos, cobertura, categorías).
+     */
+    @Get('metrics')
+    @ApiOperation({
+        summary: 'Obtener métricas globales de verificación factual',
+    })
+    async getVerificationMetrics(): Promise<DataResponse<any>> {
+        const data = await this.verification.findAll();
+        return {
+            status: 'ok',
+            message: 'Métricas obtenidas correctamente.',
+            data,
         };
     }
 }

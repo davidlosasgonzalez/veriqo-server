@@ -4,7 +4,7 @@ import { env } from '@/config/env/env.config';
 
 @Injectable()
 export class BraveSearchService {
-    private readonly apiKey = process.env.BRAVE_API_KEY;
+    private readonly apiKey = env.BRAVE_API_KEY;
     private readonly baseUrl = 'https://api.search.brave.com/res/v1/web/search';
 
     async search(
@@ -12,7 +12,7 @@ export class BraveSearchService {
     ): Promise<{ url: string; domain?: string; snippet?: string }[]> {
         const sanitizedQuery = this.sanitizeQuery(query);
         console.log(
-            '[BraveSearchService] 🔍 Buscando con Brave:',
+            '[BraveSearchService] Buscando con Brave:',
             `"${sanitizedQuery}"`,
         );
 
@@ -33,7 +33,7 @@ export class BraveSearchService {
             }));
         } catch (err) {
             console.log(
-                '[BraveSearchService] ❌ Error en búsqueda Brave:',
+                '[BraveSearchService] Error en búsqueda Brave:',
                 err.message,
             );
             throw new Error('BraveSearchError');
