@@ -137,7 +137,7 @@ Veriqo combina herramientas de back‑end sólidas con servicios de IA en la nub
 git clone https://github.com/david-losas/veriqo-server.git
 cd veriqo-server
 npm install
-cpenv.exampleenv # Rellena tus claves
+cp env.example env # Rellena tus claves
 npm run start:dev
 ```
 
