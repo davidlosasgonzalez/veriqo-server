@@ -1,7 +1,5 @@
 # 🧠 Veriqo · AI Fact‑Checking Backend
 
-> **Validación factual con trazabilidad total.** Agentes autónomos, múltiples LLMs y fuentes reales listos para integrarse en cualquier stack.
-
 Veriqo es un **backend modular de verificación factual automática** impulsado por IA. Combina un bus de eventos, modelos LLM de última generación y recuperación activa de fuentes (Brave Search, Google CSE, NewsAPI) para contrastar afirmaciones en tiempo real y exponer veredictos trazables vía API REST.
 
 ## ⚠️ Estado del proyecto
