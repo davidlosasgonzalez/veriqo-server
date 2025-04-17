@@ -6,10 +6,14 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { BaseResponse } from '@/shared/types/base-response.type';
-import { isHttpExceptionResponseWithData } from '@/shared/utils/is-http-exception-response-with-data';
-import { isHttpExceptionResponseWithMessage } from '@/shared/utils/is-http-exception-response-with-message';
+import { BaseResponse } from '@/shared/types/http-response.type';
+import { isHttpExceptionResponseWithData } from '@/shared/utils/http/is-http-exception-response-with-data';
+import { isHttpExceptionResponseWithMessage } from '@/shared/utils/http/is-http-exception-response-with-message';
 
+/**
+ * Filtro global que transforma todas las excepciones en una respuesta uniforme.
+ * Se aplica automáticamente a todas las rutas si se registra como global.
+ */
 @Catch()
 export class GlobalExceptionsFilter implements ExceptionFilter {
     catch(exception: unknown, host: ArgumentsHost): void {

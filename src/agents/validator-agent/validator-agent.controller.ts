@@ -1,10 +1,15 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import {
+    ApiTags,
+    ApiOperation,
+    ApiBody,
+    ApiResponse,
+    ApiParam,
+} from '@nestjs/swagger';
 import { ExecuteValidatorDto } from './dto/execute-validator.dto';
+import { ValidationFindingDto } from './dto/validation-finding.dto';
 import { ValidatorAgentService } from './validator-agent.service';
-import { AgentFinding } from '@/database/entities/agent-findings.entity';
-import { DataResponse } from '@/shared/types/base-response.type';
-import { ValidationFinding } from '@/shared/types/validation-finding.type';
+import { DataResponse } from '@/shared/types/http-response.type';
 
 @ApiTags('Validator Agent')
 @Controller('agents/validator')
@@ -13,6 +18,10 @@ export class ValidatorAgentController {
         private readonly validatorAgentService: ValidatorAgentService,
     ) {}
 
+    /**
+     * Analiza un texto y detecta posibles errores, contradicciones u omisiones.
+     * Puede emitir eventos para verificación factual si es necesario.
+     */
     @Post()
     @ApiOperation({
         summary: 'Analiza un texto y detecta contradicciones o errores.',
@@ -21,66 +30,75 @@ export class ValidatorAgentController {
     @ApiResponse({
         status: 200,
         description: 'Texto analizado correctamente.',
-        schema: {
-            example: {
-                status: 'ok',
-                message: 'Texto analizado correctamente.',
-                data: [
-                    {
-                        id: 'bbde9314-5011-46e0-aea1-f4bcae91e5c3',
-                        claim: 'El número primo más pequeño es 1',
-                        type: 'factual_error',
-                        summary: '1 no es primo',
-                        explanation:
-                            'Por definición, un número primo es mayor que 1.',
-                        suggestion: 'Sustituye 1 por 2.',
-                        keywords: ['número primo', 'matemáticas'],
-                        synonyms: ['número natural mayor que 1'],
-                        needsFactCheck: true,
-                        createdAt: '2025-04-14T12:00:00.000Z',
-                        updatedAt: '2025-04-14T12:00:00.000Z',
-                    },
-                ],
-            },
-        },
+        type: ValidationFindingDto,
+        isArray: true,
     })
     async execute(
         @Body() executeValidatorDto: ExecuteValidatorDto,
-    ): Promise<DataResponse<ValidationFinding[]>> {
-        const result = await this.validatorAgentService.execute(
+    ): Promise<DataResponse<ValidationFindingDto[]>> {
+        const result = await this.validatorAgentService.verifyClaim(
             executeValidatorDto.prompt,
+            executeValidatorDto.waitForFact ?? false,
+        );
+
+        const dtoResult = result.map(
+            (finding) => new ValidationFindingDto(finding),
         );
 
         return {
             status: 'ok',
             message: 'Texto analizado correctamente.',
-            data: result,
+            data: dtoResult,
         };
     }
 
+    /**
+     * Devuelve todos los hallazgos realizados por el ValidatorAgent.
+     */
     @Get('findings')
     @ApiOperation({
-        summary: 'Devuelve todos los findings detectados por ValidatorAgent',
+        summary:
+            'Devuelve todos los hallazgos generados por el ValidatorAgent.',
     })
-    async getFindings(): Promise<DataResponse<AgentFinding[]>> {
+    @ApiResponse({
+        status: 200,
+        type: ValidationFindingDto,
+        isArray: true,
+    })
+    async getAllFindings(): Promise<DataResponse<ValidationFindingDto[]>> {
         const findings = await this.validatorAgentService.getAllFindings();
+        const dtoResult = findings.map(
+            (finding) => new ValidationFindingDto(finding),
+        );
 
         return {
             status: 'ok',
-            message: 'Findings recuperados correctamente.',
-            data: findings,
+            message: 'Hallazgos encontrados correctamente.',
+            data: dtoResult,
         };
     }
 
-    @Get('test')
-    @ApiOperation({
-        summary: 'Comprueba si el agente está activo (modo desarrollo).',
+    /**
+     * Busca un hallazgo concreto por su ID único.
+     * @param findingId UUID del hallazgo
+     */
+    @Get(':findingId')
+    @ApiOperation({ summary: 'Devuelve un hallazgo concreto por su ID.' })
+    @ApiParam({ name: 'findingId', example: 'uuid-válido-del-finding' })
+    @ApiResponse({
+        status: 200,
+        type: ValidationFindingDto,
     })
-    async test(): Promise<DataResponse<string>> {
+    async getFindingById(
+        @Param('findingId') findingId: string,
+    ): Promise<DataResponse<ValidationFindingDto | null>> {
+        const finding =
+            await this.validatorAgentService.getFindingById(findingId);
+
         return {
             status: 'ok',
-            message: 'El agente está activo.',
-            data: 'ValidatorAgent operativo 🧠',
+            message: finding ? 'Hallazgo recuperado.' : 'No encontrado.',
+            data: finding ? new ValidationFindingDto(finding) : null,
         };
     }
 }

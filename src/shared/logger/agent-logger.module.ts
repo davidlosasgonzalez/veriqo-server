@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AgentLoggerService } from './agent-logger.service';
-import { AgentLog } from '@/database/entities/agent-log.entity';
+import { AgentLog } from '@/core/database/entities/agent-log.entity';
 
 @Module({
     imports: [TypeOrmModule.forFeature([AgentLog])],

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { env } from '@/config/env/env.config';
 
 type GoogleSearchResult = {
     url: string;
@@ -10,18 +11,18 @@ type GoogleSearchResult = {
 
 @Injectable()
 export class GoogleSearchService {
-    private readonly apiKey = process.env.GOOGLE_CLOUD_API_KEY;
-    private readonly cx = process.env.GOOGLE_CX_ID;
+    private readonly apiKey = env.GOOGLE_CLOUD_API_KEY;
+    private readonly cx = env.GOOGLE_CX_ID;
     private readonly baseUrl = 'https://www.googleapis.com/customsearch/v1';
 
     async search(query: string): Promise<GoogleSearchResult[]> {
         if (!query?.trim()) {
-            console.error('[GoogleSearchService] ❌ Query vacío.');
+            console.error('[GoogleSearchService] Query vacío.');
             throw new Error('[GoogleSearchService] Query vacío no permitido.');
         }
 
         console.log(
-            `[GoogleSearchService] 🔍 Buscando con Google CSE: "${query.trim()}"`,
+            `[GoogleSearchService] Buscando con Google CSE: "${query.trim()}"`,
         );
 
         try {
@@ -38,11 +39,11 @@ export class GoogleSearchService {
 
             if (items.length > 0) {
                 console.log(
-                    `[GoogleSearchService] ✅ Resultados obtenidos de Google: ${items.length}`,
+                    `[GoogleSearchService] Resultados obtenidos de Google: ${items.length}`,
                 );
             } else {
                 console.warn(
-                    '[GoogleSearchService] ⚠️ Google no devolvió resultados.',
+                    '[GoogleSearchService] Google no devolvió resultados.',
                 );
             }
 
@@ -54,7 +55,7 @@ export class GoogleSearchService {
             }));
         } catch (err) {
             console.error(
-                '[GoogleSearchService] ❌ Error en búsqueda Google:',
+                '[GoogleSearchService] Error en búsqueda Google:',
                 err?.message,
             );
             return [];

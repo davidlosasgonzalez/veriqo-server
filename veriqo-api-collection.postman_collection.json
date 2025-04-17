@@ -1,0 +1,345 @@
+{
+	"info": {
+		"_postman_id": "9e44159d-72d7-426e-a037-040422c94c25",
+		"name": "veriqo-api-collection",
+		"description": "Postman collection for Veriqo API — clean, modular, and professional.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "9687616"
+	},
+	"item": [
+		{
+			"name": "Validator",
+			"item": [
+				{
+					"name": "analyze-prompt",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"prompt\": \"Newton descubrió la gravedad\",\n  \"waitForFact\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/agents/validator",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"validator"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "all-findings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/agents/validator/findings",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"validator",
+								"findings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "finding-by-id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/agents/validator/:findingId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"validator",
+								":findingId"
+							],
+							"variable": [
+								{
+									"key": "findingId",
+									"value": "1731bd03-c789-4ea2-ac45-5c91baea83c7"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "FactChecker",
+			"item": [
+				{
+					"name": "add-verification",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"claim\": \"EEUU y Reino Unido desarrollan tecnología hipersónica para misiles que vuelan a la velocidad de un asteroide\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/agents/fact-checker",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"fact-checker"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "last-verification",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/agents/fact-checker/last",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"fact-checker",
+								"last"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "verification-by-claim",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/agents/fact-checker/facts/:claim",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"fact-checker",
+								"facts",
+								":claim"
+							],
+							"variable": [
+								{
+									"key": "claim",
+									"value": "Trump ha puesto aranceles a un montón de países en 2025"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "history",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/agents/fact-checker/history",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"fact-checker",
+								"history"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "verification-by-id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/agents/fact-checker/verifications/:verificationId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"fact-checker",
+								"verifications",
+								":verificationId"
+							],
+							"variable": [
+								{
+									"key": "verificationId",
+									"value": "56a67625-ed7c-414f-b23e-d44dc76f8642"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Core",
+			"item": [
+				{
+					"name": "all-logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/core/logs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"core",
+								"logs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "all-prompts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/core/prompts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"core",
+								"prompts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "all-events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/core/events",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"core",
+								"events"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "log-summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/core/log-summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"core",
+								"log-summary"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/core/metrics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"core",
+								"metrics"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3001/api"
+		}
+	]
+}
