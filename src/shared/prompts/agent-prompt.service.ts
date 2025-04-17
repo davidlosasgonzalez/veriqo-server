@@ -1,16 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AgentPrompt } from '@/database/entities/agent-prompt.entity';
+import { AgentEvent } from '@/core/database/entities/agent-event.entity';
+import { AgentPrompt } from '@/core/database/entities/agent-prompt.entity';
 
 @Injectable()
 export class AgentPromptService {
     constructor(
         @InjectRepository(AgentPrompt)
         private readonly promptRepo: Repository<AgentPrompt>,
+        @InjectRepository(AgentEvent)
+        private readonly eventRepo: Repository<AgentEvent>,
     ) {}
 
-    async getPromptForAgent(agent: string): Promise<string> {
+    async findPromptByAgent(agent: string): Promise<string> {
         const prompt = await this.promptRepo.findOneBy({ agent });
         if (!prompt) {
             throw new Error(`Prompt no encontrado para el agente "${agent}".`);
@@ -18,9 +21,13 @@ export class AgentPromptService {
         return prompt.prompt;
     }
 
-    async getAllPrompts(): Promise<AgentPrompt[]> {
+    async findAllPrompts(): Promise<AgentPrompt[]> {
         return this.promptRepo.find({
             order: { agent: 'ASC' },
         });
+    }
+
+    async findAllEvents(): Promise<AgentEvent[]> {
+        return this.eventRepo.find({ order: { createdAt: 'DESC' } });
     }
 }

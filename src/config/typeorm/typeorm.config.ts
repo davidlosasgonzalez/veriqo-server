@@ -9,7 +9,9 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
     username: env.DB_USER,
     password: env.DB_PASSWORD,
     database: env.DB_NAME,
-    synchronize: true,
-    dropSchema: false, // ponlo en false en producción
     entities: [join(__dirname, '../../**/*.entity.{ts,js}')],
+
+    // TODO: solo para desarrollo local. Usa migraciones en producción.
+    synchronize: true,
+    dropSchema: false,
 };

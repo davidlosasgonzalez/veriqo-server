@@ -1,20 +1,17 @@
-import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import {
     ApiTags,
     ApiOperation,
-    ApiResponse,
     ApiParam,
-    ApiQuery,
+    ApiBody,
+    ApiOkResponse,
 } from '@nestjs/swagger';
+import { ExecuteFactCheckerDto } from './dto/execute-fact-checker.dto';
 import { FactCheckerAgentService } from './fact-checker-agent.service';
-import { AgentLog } from '@/database/entities/agent-log.entity';
-import { AgentPrompt } from '@/database/entities/agent-prompt.entity';
-import { AgentSource } from '@/database/entities/agent-sources.entity';
-import { AgentFactService } from '@/shared/facts/agent-fact.service';
-import { AgentVerificationService } from '@/shared/facts/agent-verification.service';
-import { AgentLoggerService } from '@/shared/logger/agent-logger.service';
-import { AgentPromptService } from '@/shared/prompts/agent-prompt.service';
-import { DataResponse } from '@/shared/types/base-response.type';
+import { AgentFactService } from '@/shared/facts/services/agent-fact.service';
+import { AgentVerificationService } from '@/shared/facts/services/agent-verification.service';
+import { ExtendedFact } from '@/shared/types/extended-fact.type';
+import { DataResponse } from '@/shared/types/http-response.type';
 
 @ApiTags('Fact Checker Agent')
 @Controller('agents/fact-checker')
@@ -23,14 +20,44 @@ export class FactCheckerAgentController {
         private readonly factCheckerService: FactCheckerAgentService,
         private readonly factService: AgentFactService,
         private readonly verificationService: AgentVerificationService,
-        private readonly promptService: AgentPromptService,
-        private readonly loggerService: AgentLoggerService,
     ) {}
 
+    /**
+     * Verifica una afirmación concreta usando el agente fact-checker.
+     */
+    @Post()
+    @ApiOperation({ summary: 'Verifica una afirmación factual.' })
+    @ApiBody({ type: ExecuteFactCheckerDto })
+    @ApiOkResponse({ description: 'Resultado de la verificación factual.' })
+    async verifyClaim(
+        @Body() executeFactCheckerDto: ExecuteFactCheckerDto,
+    ): Promise<DataResponse<any>> {
+        if (!executeFactCheckerDto.claim?.trim()) {
+            return {
+                status: 'error',
+                message: 'El campo claim es obligatorio.',
+                data: null,
+            };
+        }
+
+        const result = await this.factCheckerService.verifyClaim({
+            claim: executeFactCheckerDto.claim,
+            context: executeFactCheckerDto.context ?? 'manual',
+        });
+
+        return {
+            status: 'ok',
+            message: 'Verificación completada.',
+            data: result,
+        };
+    }
+
+    /**
+     * Devuelve la última verificación realizada por el agente.
+     */
     @Get('last')
-    @ApiOperation({
-        summary: 'Devuelve la última verificación factual realizada',
-    })
+    @ApiOperation({ summary: 'Última verificación factual realizada.' })
+    @ApiOkResponse({ description: 'Último resultado de verificación.' })
     async getLastVerification(): Promise<DataResponse<any>> {
         const result = this.factCheckerService.getLastResult();
         return {
@@ -40,103 +67,107 @@ export class FactCheckerAgentController {
         };
     }
 
+    /**
+     * Devuelve una verificación específica a partir de un claim.
+     */
     @Get('facts/:claim')
-    @ApiOperation({
-        summary: 'Devuelve una verificación específica si ya fue realizada',
+    @ApiOperation({ summary: 'Busca una verificación previa por claim.' })
+    @ApiParam({
+        name: 'claim',
+        example: 'La velocidad de la luz depende del observador',
     })
-    @ApiParam({ name: 'claim' })
+    @ApiOkResponse({ type: ExtendedFact })
     async getFactByClaim(
         @Param('claim') claim: string,
-    ): Promise<DataResponse<any>> {
-        const fact = await this.factService.getFactByClaim(claim);
-        const verification =
-            await this.verificationService.getVerificationByClaim(claim);
+    ): Promise<DataResponse<ExtendedFact | null>> {
+        const fact = await this.factService.findByClaim(claim);
+        const verification = await this.verificationService.findByClaim(claim);
+
+        const extended: ExtendedFact | null = fact
+            ? {
+                  ...(() => {
+                      const { embedding, ...safeFact } = fact;
+                      return safeFact;
+                  })(),
+                  reasoning: verification?.reasoning ?? '[Sin explicación]',
+                  sources_retrieved: verification?.sourcesRetrieved ?? [],
+                  sources_used: verification?.sourcesUsed ?? [],
+                  sources: fact.sources ?? [],
+                  createdAt: fact.createdAt.toISOString(),
+                  updatedAt: fact.updatedAt.toISOString(),
+              }
+            : null;
+
         return {
             status: 'ok',
-            message: 'Resultado recuperado.',
-            data: fact
-                ? {
-                      ...fact,
-                      reasoning: verification?.reasoning ?? '',
-                      sources_retrieved: verification?.sourcesRetrieved ?? [],
-                      sources_used: verification?.sourcesUsed ?? [],
-                  }
-                : null,
+            message: fact
+                ? 'Verificación encontrada.'
+                : 'No se encontró verificación previa.',
+            data: extended,
         };
     }
 
+    /**
+     * Devuelve todo el historial de verificaciones realizadas.
+     */
     @Get('history')
-    @ApiOperation({
-        summary: 'Devuelve el historial completo de verificaciones',
-    })
-    async getHistory(): Promise<DataResponse<any[]>> {
-        const facts = await this.factService.getAllFacts();
-        const enriched = await Promise.all(
+    @ApiOperation({ summary: 'Historial de verificaciones previas.' })
+    @ApiOkResponse({ type: [ExtendedFact] })
+    async getFactHistory(): Promise<DataResponse<ExtendedFact[]>> {
+        const facts = await this.factService.findAll();
+
+        const extended: ExtendedFact[] = await Promise.all(
             facts.map(async (fact) => {
-                const verification =
-                    await this.verificationService.getVerificationByClaim(
-                        fact.claim,
-                    );
+                const verification = await this.verificationService.findByClaim(
+                    fact.claim,
+                );
+
+                const { embedding, ...safeFact } = fact;
+
                 return {
-                    ...fact,
-                    reasoning: verification?.reasoning ?? '',
+                    ...safeFact,
+                    reasoning: verification?.reasoning ?? '[Sin explicación]',
                     sources_retrieved: verification?.sourcesRetrieved ?? [],
                     sources_used: verification?.sourcesUsed ?? [],
+                    sources: fact.sources ?? [],
+                    createdAt: fact.createdAt.toISOString(),
+                    updatedAt: fact.updatedAt.toISOString(),
                 };
             }),
         );
+
         return {
             status: 'ok',
-            message: 'Historial cargado correctamente.',
-            data: enriched,
+            message: 'Historial recuperado correctamente.',
+            data: extended,
         };
     }
 
-    @Get('logs')
-    @ApiOperation({ summary: 'Devuelve el historial de uso de los agentes' })
-    async getLogs(): Promise<DataResponse<AgentLog[]>> {
-        const logs = await this.loggerService.getAllLogs();
-        return {
-            status: 'ok',
-            message: 'Historial de logs cargado correctamente.',
-            data: logs,
-        };
-    }
+    /**
+     * Devuelve una verificación específica a partir de su ID.
+     */
+    @Get('verifications/:verificationId')
+    @ApiOperation({ summary: 'Busca una verificación por ID único.' })
+    @ApiParam({ name: 'verificationId', example: 'uuid-verificacion' })
+    @ApiOkResponse({ description: 'Verificación encontrada.' })
+    async getVerificationById(
+        @Param('verificationId') verificationId: string,
+    ): Promise<DataResponse<any>> {
+        const cleanedId = verificationId.trim().toLowerCase();
+        const verification = await this.verificationService.findById(cleanedId);
 
-    @Get('prompts')
-    @ApiOperation({ summary: 'Devuelve los prompts base de todos los agentes' })
-    async getPrompts(): Promise<DataResponse<AgentPrompt[]>> {
-        const prompts = await this.promptService.getAllPrompts();
-        return {
-            status: 'ok',
-            message: 'Prompts cargados correctamente.',
-            data: prompts,
-        };
-    }
+        if (!verification) {
+            return {
+                status: 'error',
+                message: 'No se encontró la verificación con ese ID.',
+                data: null,
+            };
+        }
 
-    @Get('sources')
-    @ApiOperation({ summary: 'Devuelve todas las fuentes registradas' })
-    async getAllSources(): Promise<DataResponse<AgentSource[]>> {
-        const sources = await this.verificationService.getAllSources();
         return {
             status: 'ok',
-            message: 'Fuentes obtenidas correctamente.',
-            data: sources,
-        };
-    }
-
-    @Get('insights')
-    @ApiOperation({ summary: 'Estadísticas globales de verificaciones' })
-    async getStats(): Promise<DataResponse<any>> {
-        const total = await this.factService.countAllFacts();
-        const byVerdict = await this.verificationService.countByVerdict();
-        return {
-            status: 'ok',
-            message: 'Estadísticas generadas.',
-            data: {
-                totalVerificaciones: total,
-                porVeredicto: byVerdict,
-            },
+            message: 'Verificación encontrada.',
+            data: verification,
         };
     }
 }

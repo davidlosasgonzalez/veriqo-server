@@ -6,6 +6,10 @@ import { env } from '@/config/env/env.config';
 import { customValidationPipe } from '@/shared/pipes/custom-validation.pipe';
 import { GlobalExceptionsFilter } from '@/shared/pipes/global-exceptions.filter';
 
+/**
+ * Punto de entrada de la aplicación NestJS.
+ * Configura middlewares, Swagger, validaciones y filtros globales.
+ */
 async function bootstrap() {
     try {
         const app = await NestFactory.create(AppModule);
@@ -16,12 +20,14 @@ async function bootstrap() {
         app.use(morgan('dev'));
 
         const config = new DocumentBuilder()
-            .setTitle('ATM System API')
+            .setTitle('Veriqo API')
             .setDescription(
-                'API para el sistema ATM, gestionando cuentas y tarjetas.',
+                'Backend modular de verificación factual automática mediante agentes LLM y recuperación activa de fuentes.',
             )
             .setVersion('1.0')
-            .addTag('atm')
+            .addTag('validator-agent')
+            .addTag('fact-checker-agent')
+            .addTag('core')
             .build();
 
         const document = SwaggerModule.createDocument(app, config);
@@ -30,20 +36,23 @@ async function bootstrap() {
         await app.listen(env.PORT);
 
         console.log(
-            `NestJS funcionando en http://localhost:${env.PORT ?? 3001}`,
+            `Veriqo backend iniciado: http://localhost:${env.PORT}/api`,
+        );
+        console.log(
+            `Swagger disponible en: http://localhost:${env.PORT}/api-docs`,
         );
     } catch (error) {
-        console.error('Error durante NestJS bootstrap:', error);
+        console.error('Error durante el bootstrap de NestJS:', error);
     }
 }
 
-bootstrap();
+void bootstrap();
 
-// Captura errores no controlados en tiempo de ejecución
+// Captura errores no controlados.
 process.on('uncaughtException', (err) => {
-    console.error('🔥 Uncaught Exception:', err);
+    console.error('Uncaught Exception:', err);
 });
 
 process.on('unhandledRejection', (reason) => {
-    console.error('🔥 Unhandled Rejection:', reason);
+    console.error('Unhandled Rejection:', reason);
 });
