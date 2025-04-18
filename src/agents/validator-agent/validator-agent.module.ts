@@ -1,6 +1,17 @@
 import { Module } from '@nestjs/common';
-import { ValidatorAgentController } from './validator-agent.controller';
-import { ValidatorAgentService } from './validator-agent.service';
+
+import {
+    VerifyClaimController,
+    GetAllFindingsController,
+    GetFindingByIdController,
+} from './controllers';
+
+import {
+    VerifyClaimService,
+    GetAllFindingsService,
+    GetFindingByIdService,
+} from './services';
+
 import { SharedModule } from '@/shared/shared.module';
 
 /**
@@ -9,7 +20,15 @@ import { SharedModule } from '@/shared/shared.module';
  */
 @Module({
     imports: [SharedModule],
-    controllers: [ValidatorAgentController],
-    providers: [ValidatorAgentService],
+    controllers: [
+        VerifyClaimController,
+        GetAllFindingsController,
+        GetFindingByIdController,
+    ],
+    providers: [
+        VerifyClaimService,
+        GetAllFindingsService,
+        GetFindingByIdService,
+    ],
 })
 export class ValidatorAgentModule {}

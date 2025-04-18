@@ -7,8 +7,8 @@ import { OpenAIEmbeddingService } from '@/shared/embeddings/openai-embedding.ser
 import { vectorSimilarity } from '@/shared/utils/embeddings/vector-similarity';
 
 /**
- * Servicio responsable de gestionar hechos verificados (AgentFact),
- * su persistencia, deduplicación, comparación por embeddings y actualizaciones.
+ * Servicio responsable de gestionar los hechos verificados (`AgentFact`),
+ * incluyendo creación, deduplicación semántica, y búsquedas eficientes.
  */
 @Injectable()
 export class AgentFactService {
@@ -21,7 +21,13 @@ export class AgentFactService {
     ) {}
 
     /**
-     * Guarda un fact nuevo o actualiza uno existente si el claim cambia o su estado/sources cambian.
+     * Crea un fact nuevo o actualiza uno existente si ha cambiado el claim, status o las fuentes.
+     * @param _agent Agente que solicita la creación (no se usa por ahora).
+     * @param claim Afirmación original.
+     * @param status Veredicto factual asignado.
+     * @param sources Fuentes utilizadas para justificar el veredicto.
+     * @param normalizedClaim Claim ya normalizado (opcional).
+     * @returns `AgentFact` guardado o actualizado.
      */
     async create(
         _agent: string,
@@ -32,6 +38,7 @@ export class AgentFactService {
     ): Promise<AgentFact> {
         const normalized =
             normalizedClaim?.trim().toLowerCase() || claim.toLowerCase().trim();
+
         const embedding = await this.embeddingService.generateEmbedding(claim);
 
         const existing = await this.factRepo.findOneBy({
@@ -48,7 +55,8 @@ export class AgentFactService {
                 existing.status = status;
                 existing.sources = sources;
                 existing.embedding = embedding;
-                return this.factRepo.save(existing);
+
+                return await this.factRepo.save(existing);
             }
 
             return existing;
@@ -62,11 +70,13 @@ export class AgentFactService {
             embedding,
         });
 
-        return this.factRepo.save(newFact);
+        return await this.factRepo.save(newFact);
     }
 
     /**
-     * Busca un fact por claim normalizado, limitado por antigüedad máxima.
+     * Busca un fact reciente por su claim normalizado.
+     * @param normalized Claim transformado a forma canónica.
+     * @returns El `AgentFact` si existe, o `null`.
      */
     async findByNormalizedClaim(normalized: string): Promise<AgentFact | null> {
         const threshold = new Date();
@@ -83,21 +93,23 @@ export class AgentFactService {
     }
 
     /**
-     * Normaliza un claim y lo busca.
+     * Normaliza un claim de entrada y lo busca.
+     * @param claim Afirmación en lenguaje natural.
      */
     async findByClaim(claim: string): Promise<AgentFact | null> {
         return this.findByNormalizedClaim(claim.toLowerCase().trim());
     }
 
     /**
-     * Obtiene un fact por su ID.
+     * Busca un fact por ID.
+     * @param id UUID del `AgentFact`.
      */
     async findById(id: string): Promise<AgentFact | null> {
         return this.factRepo.findOne({ where: { id } });
     }
 
     /**
-     * Devuelve todos los facts registrados, ordenados por fecha descendente.
+     * Devuelve todos los facts existentes en base de datos.
      */
     async findAll(): Promise<AgentFact[]> {
         return this.factRepo.find({
@@ -106,15 +118,25 @@ export class AgentFactService {
     }
 
     /**
-     * Busca un fact similar al claim dado, comparando embeddings semánticos y fecha reciente.
+     * Ejecuta una búsqueda por similitud semántica con embeddings,
+     * y devuelve el fact más cercano si supera el umbral de similitud.
+     * @param claim Texto a evaluar.
+     * @returns `AgentFact` más similar si es reciente y suficientemente cercano.
      */
-    async findSimilarByEmbedding(claim: string): Promise<AgentFact | null> {
+    async execute(claim: string): Promise<AgentFact | null> {
         const newEmbedding =
             await this.embeddingService.generateEmbedding(claim);
 
         const allFacts = await this.factRepo.find({
             where: { embedding: Not(IsNull()) },
-            select: ['id', 'claim', 'normalizedClaim', 'status', 'updatedAt'],
+            select: [
+                'id',
+                'claim',
+                'normalizedClaim',
+                'status',
+                'updatedAt',
+                'embedding',
+            ],
         });
 
         let bestMatch: AgentFact | null = null;

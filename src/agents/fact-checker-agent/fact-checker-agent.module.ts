@@ -1,7 +1,24 @@
 import { Module } from '@nestjs/common';
-import { FactCheckerAgentController } from './fact-checker-agent.controller';
+
+import {
+    VerifyClaimController,
+    GetLastVerificationController,
+    GetFactByClaimController,
+    GetVerificationByIdController,
+    GetFactHistoryController,
+} from './controllers';
+
 import { FactCheckerAgentListener } from './fact-checker-agent.listener';
-import { FactCheckerAgentService } from './fact-checker-agent.service';
+
+import {
+    VerifyClaimService,
+    GetLastVerificationService,
+    GetFactByClaimService,
+    GetVerificationByIdService,
+    GetFactHistoryService,
+    HandleFactualCheckRequiredService,
+} from './services';
+
 import { SharedModule } from '@/shared/shared.module';
 
 /**
@@ -10,7 +27,21 @@ import { SharedModule } from '@/shared/shared.module';
  */
 @Module({
     imports: [SharedModule],
-    controllers: [FactCheckerAgentController],
-    providers: [FactCheckerAgentService, FactCheckerAgentListener],
+    controllers: [
+        VerifyClaimController,
+        GetLastVerificationController,
+        GetFactByClaimController,
+        GetVerificationByIdController,
+        GetFactHistoryController,
+    ],
+    providers: [
+        VerifyClaimService,
+        GetLastVerificationService,
+        GetFactByClaimService,
+        GetVerificationByIdService,
+        GetFactHistoryService,
+        HandleFactualCheckRequiredService,
+        FactCheckerAgentListener,
+    ],
 })
 export class FactCheckerAgentModule {}

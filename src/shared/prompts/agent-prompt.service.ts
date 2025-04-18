@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AgentEvent } from '@/core/database/entities/agent-event.entity';
@@ -15,9 +16,13 @@ export class AgentPromptService {
 
     async findPromptByAgent(agent: string): Promise<string> {
         const prompt = await this.promptRepo.findOneBy({ agent });
+
         if (!prompt) {
-            throw new Error(`Prompt no encontrado para el agente "${agent}".`);
+            throw new NotFoundException(
+                `No se encontró el prompt para el agente "${agent}"`,
+            );
         }
+
         return prompt.prompt;
     }
 

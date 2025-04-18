@@ -72,4 +72,28 @@ export class LlmRouterService {
             `Proveedor de embedding no soportado: ${provider}. Usa 'openai' o 'claude'.`,
         );
     }
+
+    /**
+     * Normaliza una afirmación textual usando el modelo configurado del ValidatorAgent.
+     * Extrae su forma canónica o estándar para comparar equivalencias semánticas.
+     */
+    async normalizeClaim(claim: string): Promise<{ normalizedClaim: string }> {
+        const messages: ChatCompletionMessageParam[] = [
+            {
+                role: 'system',
+                content:
+                    'Eres un agente que transforma afirmaciones ambiguas o redundantes en versiones claras, breves y canónicas.',
+            },
+            {
+                role: 'user',
+                content: `Normaliza esta afirmación para verificar duplicados:\n\n"${claim}"\n\nSolo devuelve la frase normalizada.`,
+            },
+        ];
+
+        const content = await this.chatWithAgent('validator', messages);
+
+        return {
+            normalizedClaim: content.trim().replace(/^"|"$/g, ''),
+        };
+    }
 }
