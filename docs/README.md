@@ -47,16 +47,16 @@ curl http://localhost:3001/api/facts/verifications/last
 
 Explora en profundidad la documentación organizada del proyecto:
 
-- 📖 [Visión general](docs/overview.md)
-- 🧩 [Arquitectura de Agentes](docs/architecture/agents.md)
-- 🤖 [Modelos LLM y decisiones técnicas](docs/architecture/models-choice.md)
-- 🚧 [Prerrequisitos e instalación](docs/setup/prerequisites.md)
-- ⚙️ [Variables de entorno](docs/setup/env-variables.md)
-- 📡 [API - ValidatorAgent](docs/api/validators.md)
-- 📡 [API - FactCheckerAgent](docs/api/facts.md)
-- 📡 [API - Core](docs/api/core.md)
-- 🔄 [Flujo Validator → FactChecker](docs/flows/validation-to-factcheck.md)
-- ❓ [Preguntas frecuentes (FAQ)](docs/faq.md)
+- 📖 [Visión general](overview.md)
+- 🧩 [Arquitectura de Agentes](architecture/agents.md)
+- 🤖 [Modelos LLM y decisiones técnicas](architecture/models-choice.md)
+- 🚧 [Prerrequisitos e instalación](setup/prerequisites.md)
+- ⚙️ [Variables de entorno](setup/env-variables.md)
+- 📡 [API - ValidatorAgent](api/validators.md)
+- 📡 [API - FactCheckerAgent](api/facts.md)
+- 📡 [API - Core](api/core.md)
+- 🔄 [Flujo Validator → FactChecker](flows/validation-to-factcheck.md)
+- ❓ [Preguntas frecuentes (FAQ)](faq.md)
 
 ## 📈 Estado del proyecto
 
