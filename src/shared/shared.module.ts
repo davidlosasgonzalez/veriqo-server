@@ -13,6 +13,7 @@ import { FactCheckLockService } from './facts/runtime/fact-check-lock.service';
 import { AgentFactService } from './facts/services/agent-fact.service';
 import { AgentFindingService } from './facts/services/agent-finding.service';
 import { AgentVerificationService } from './facts/services/agent-verification.service';
+import { FactCheckerResultService } from './facts/services/fact-checker-result.service';
 
 import { ClaudeChatService } from './llm/claude-chat.service';
 import { LlmRouterService } from './llm/llm-router.service';
@@ -78,6 +79,7 @@ import { PromptSeeder } from '@/core/database/seeders/prompt.seeder';
         AgentVerificationService,
         FactCheckAwaitService,
         FactCheckLockService,
+        FactCheckerResultService,
 
         // Search
         BraveSearchService,
@@ -113,6 +115,7 @@ import { PromptSeeder } from '@/core/database/seeders/prompt.seeder';
         AgentVerificationService,
         FactCheckAwaitService,
         FactCheckLockService,
+        FactCheckerResultService,
 
         // Search
         BraveSearchService,

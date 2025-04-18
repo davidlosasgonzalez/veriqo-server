@@ -17,8 +17,15 @@ export class ValidationFindingDto {
     @ApiProperty()
     claim: string;
 
+    /** Afirmación normalizada para comparación semántica */
+    @ApiPropertyOptional()
+    normalizedClaim?: string;
+
     /** Categoría del error o contradicción detectada */
-    @ApiProperty({ enum: AgentFindingCategory })
+    @ApiProperty({
+        enum: AgentFindingCategory,
+        enumName: 'AgentFindingCategory',
+    })
     category: AgentFindingCategory;
 
     /** Resumen breve del hallazgo */
@@ -44,6 +51,7 @@ export class ValidationFindingDto {
             type: 'array',
             items: { type: 'string' },
         },
+        description: 'Mapa de sinónimos agrupados por término detectado.',
     })
     synonyms?: Record<string, string[]>;
 
@@ -65,14 +73,16 @@ export class ValidationFindingDto {
 
     /** Estado de veracidad del fact relacionado (si existe) */
     @ApiPropertyOptional({
-        description: 'Estado del fact relacionado',
-        example: 'true',
+        description: 'Estado de veracidad determinado por el FactChecker',
+        enum: ['true', 'false', 'possibly_true', 'unknown'],
+        example: 'false',
     })
     factStatus?: string;
 
     /** Fecha en la que se realizó la verificación factual */
     @ApiPropertyOptional({
-        description: 'Fecha de verificación factual',
+        description:
+            'Fecha en la que se realizó la última verificación factual disponible.',
         example: '2025-04-10T14:23:00.000Z',
     })
     factCheckedAt?: string;
@@ -80,17 +90,39 @@ export class ValidationFindingDto {
     /** Fuentes utilizadas durante la verificación factual */
     @ApiPropertyOptional({
         type: [String],
-        description: 'Fuentes utilizadas en la verificación factual',
+        description: 'Fuentes utilizadas durante la verificación factual.',
     })
     factSourcesUsed?: string[];
 
     /** Indica si el resultado factual fue concluyente */
     @ApiPropertyOptional({
         description:
-            'Indica si el resultado del fact fue concluyente (true/false) o no (unknown)',
+            'Indica si el resultado del fact fue concluyente (true/false) o no (unknown).',
         example: true,
     })
     factIsConclusive?: boolean;
+
+    /** Veredicto generado por el FactChecker */
+    @ApiPropertyOptional({
+        description: 'Veredicto emitido por el FactChecker.',
+        example: 'cierto',
+    })
+    verdict?: string;
+
+    /** Fuentes breves asociadas al claim */
+    @ApiPropertyOptional({
+        type: [String],
+        description: 'Fuentes relacionadas directamente con el hallazgo.',
+    })
+    sources?: string[];
+
+    /** Justificación textual del resultado devuelto por el agente */
+    @ApiPropertyOptional({
+        description:
+            'Motivo o explicación técnica del estado actual del hallazgo',
+        example: 'Verificación previa existente',
+    })
+    reason?: string;
 
     /** Indica si esta afirmación requiere verificación factual adicional */
     @ApiProperty()
@@ -107,4 +139,14 @@ export class ValidationFindingDto {
         example: 'a6f0b26e-9f8f-487d-b0f0-d65b0c4db9aa',
     })
     relatedFactId?: string;
+
+    /** Fecha de creación del hallazgo */
+    @ApiPropertyOptional({ description: 'Fecha de creación del hallazgo' })
+    createdAt?: Date;
+
+    /** Fecha de última actualización del hallazgo */
+    @ApiPropertyOptional({
+        description: 'Fecha de última actualización del hallazgo',
+    })
+    updatedAt?: Date;
 }

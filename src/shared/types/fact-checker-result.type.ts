@@ -4,6 +4,7 @@ import { VerificationVerdict } from './verification-verdict.type';
  * Representa la respuesta final del agente FactChecker.
  */
 export type FactCheckerResult = {
+    id: string;
     claim: string;
     status: VerificationVerdict;
     sources: string[];
