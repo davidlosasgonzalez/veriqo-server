@@ -1,0 +1,35 @@
+site_name: Veriqo API Documentation
+site_url: https://github.com/davidlosasgonzalez/veriqo-server
+
+nav:
+    - Home: README.md
+    - Visión general: overview.md
+    - Arquitectura:
+          - Agentes: architecture/agents.md
+          - Modelos LLM y decisiones técnicas: architecture/models-choice.md
+    - Setup:
+          - Prerrequisitos e instalación: setup/prerequisites.md
+          - Variables de entorno: setup/env-variables.md
+    - API:
+          - ValidatorAgent: api/validators.md
+          - FactCheckerAgent: api/facts.md
+          - Core: api/core.md
+    - Flujos:
+          - Validator → FactChecker: flows/validation-to-factcheck.md
+    - FAQ: faq.md
+
+theme:
+    name: material
+    language: es
+    features:
+        - navigation.top
+        - navigation.footer
+
+plugins:
+    - search
+
+markdown_extensions:
+    - admonition
+    - pymdownx.superfences
+    - toc:
+          permalink: true
