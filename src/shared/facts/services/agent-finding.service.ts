@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { Repository, MoreThan } from 'typeorm';
 import { AgentFactService } from './agent-fact.service';
+import { ValidationFindingDto } from '@/agents/validator-agent/dto/validation-finding.dto';
 import { env } from '@/config/env/env.config';
 import {
     AgentFinding,
@@ -18,8 +19,9 @@ import { AgentLoggerService } from '@/shared/logger/agent-logger.service';
 import { AgentPromptService } from '@/shared/prompts/agent-prompt.service';
 
 /**
- * Servicio encargado de analizar textos con un agente LLM,
- * generar findings y emitir eventos si se requiere verificación factual.
+ * Servicio encargado de analizar afirmaciones con el agente LLM,
+ * generar findings, relacionarlos con hechos verificados si corresponde,
+ * y emitir eventos si se requiere verificación factual adicional.
  */
 @Injectable()
 export class AgentFindingService {
@@ -34,7 +36,10 @@ export class AgentFindingService {
     ) {}
 
     /**
-     * Procesa un texto, genera findings usando LLM y emite eventos si es necesario.
+     * Analiza un texto y genera uno o varios findings.
+     * Emite un evento FACTUAL_CHECK_REQUIRED si es necesario.
+     * @param prompt Texto a evaluar.
+     * @returns Lista de findings guardados.
      */
     async analyzeText(prompt: string): Promise<AgentFinding[]> {
         const systemPrompt =
@@ -76,7 +81,6 @@ export class AgentFindingService {
 
         for (const item of parsed.data) {
             const normalized = item.normalizedClaim?.trim().toLowerCase();
-
             if (!normalized) {
                 throw new Error(
                     `Claim "${item.claim}" no tiene normalizedClaim`,
@@ -97,11 +101,8 @@ export class AgentFindingService {
 
             let existingFact =
                 await this.factService.findByNormalizedClaim(normalized);
-
             if (!existingFact) {
-                existingFact = await this.factService.findSimilarByEmbedding(
-                    item.claim,
-                );
+                existingFact = await this.factService.execute(item.claim);
             }
 
             const isRecentFact = existingFact
@@ -122,7 +123,12 @@ export class AgentFindingService {
                     existingFact?.id &&
                     !existingFinding.relatedFactId
                 ) {
-                    existingFinding.relatedFactId = existingFact.id;
+                    const verifiedFact = await this.factService.findById(
+                        existingFact.id,
+                    );
+                    if (verifiedFact) {
+                        existingFinding.relatedFactId = verifiedFact.id;
+                    }
                 }
 
                 Object.assign(existingFinding, {
@@ -155,6 +161,33 @@ export class AgentFindingService {
                 continue;
             }
 
+            let relatedFactId: string | undefined;
+
+            if (isRecentFact && existingFact?.id) {
+                const verifiedFact = await this.factService.findById(
+                    existingFact.id,
+                );
+                if (verifiedFact) {
+                    relatedFactId = verifiedFact.id;
+                } else {
+                    this.logger.warn(
+                        `[AgentFindingService] Fact ${existingFact.id} no existe en DB (evitando fallo FK)`,
+                    );
+                }
+            }
+
+            if (relatedFactId) {
+                const exists = await this.factService.findById(relatedFactId);
+                if (!exists) {
+                    this.logger.error(
+                        `[AgentFindingService] ¡ERROR! Intentando guardar relatedFactId inexistente: ${relatedFactId}`,
+                    );
+                    throw new Error(
+                        `relatedFactId no existe en base de datos: ${relatedFactId}`,
+                    );
+                }
+            }
+
             const newFinding = this.findingRepo.create({
                 agent: 'validator_agent',
                 claim: item.claim,
@@ -171,10 +204,7 @@ export class AgentFindingService {
                 searchQuery: item.searchQuery ?? '',
                 needsFactCheck,
                 needsFactCheckReason: item.needsFactCheckReason ?? '',
-                relatedFactId:
-                    isRecentFact && existingFact?.id
-                        ? existingFact.id
-                        : undefined,
+                relatedFactId,
             });
 
             const saved = await this.findingRepo.save(newFinding);
@@ -194,7 +224,7 @@ export class AgentFindingService {
     }
 
     /**
-     * Emite un evento factual_check_required asociado a un finding.
+     * Emite un evento de tipo FACTUAL_CHECK_REQUIRED con la información del finding.
      */
     private async emitFactCheckEvent(
         findingId: string,
@@ -219,22 +249,30 @@ export class AgentFindingService {
         );
     }
 
-    /** Guarda un finding de forma individual. */
+    /**
+     * Guarda un finding manualmente.
+     */
     async create(finding: AgentFinding): Promise<AgentFinding> {
         return this.findingRepo.save(finding);
     }
 
-    /** Devuelve todos los findings existentes. */
+    /**
+     * Devuelve todos los findings existentes.
+     */
     async findAll(): Promise<AgentFinding[]> {
         return this.findingRepo.find({ order: { createdAt: 'DESC' } });
     }
 
-    /** Busca un finding por su ID. */
+    /**
+     * Recupera un finding por ID.
+     */
     async findById(id: string): Promise<AgentFinding | null> {
         return this.findingRepo.findOne({ where: { id } });
     }
 
-    /** Busca un finding por claim normalizado. */
+    /**
+     * Busca un finding por claim normalizado (última versión).
+     */
     async findByNormalizedClaim(
         normalized: string,
     ): Promise<AgentFinding | null> {
@@ -242,5 +280,20 @@ export class AgentFindingService {
             where: { normalizedClaim: normalized },
             order: { updatedAt: 'DESC' },
         });
+    }
+
+    /**
+     * Busca un finding reciente y semánticamente equivalente a un claim normalizado.
+     */
+    async getRecentEquivalent(
+        normalizedClaim: string,
+    ): Promise<ValidationFindingDto | null> {
+        const finding = await this.findingRepo.findOne({
+            where: { normalizedClaim },
+            order: { createdAt: 'DESC' },
+            relations: ['relatedFact'],
+        });
+
+        return finding ? finding.mapToDto() : null;
     }
 }

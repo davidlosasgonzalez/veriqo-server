@@ -8,14 +8,20 @@ import {
 } from '@nestjs/swagger';
 import { ExecuteValidatorDto } from './dto/execute-validator.dto';
 import { ValidationFindingDto } from './dto/validation-finding.dto';
-import { ValidatorAgentService } from './validator-agent.service';
+import {
+    VerifyClaimService,
+    GetFindingByIdService,
+    GetAllFindingsService,
+} from './services';
 import { DataResponse } from '@/shared/types/http-response.type';
 
 @ApiTags('Validator Agent')
 @Controller('agents/validator')
 export class ValidatorAgentController {
     constructor(
-        private readonly validatorAgentService: ValidatorAgentService,
+        private readonly verifyClaimService: VerifyClaimService,
+        private readonly getFindingByIdService: GetFindingByIdService,
+        private readonly getAllFindingsService: GetAllFindingsService,
     ) {}
 
     /**
@@ -36,9 +42,8 @@ export class ValidatorAgentController {
     async execute(
         @Body() executeValidatorDto: ExecuteValidatorDto,
     ): Promise<DataResponse<ValidationFindingDto[]>> {
-        const result = await this.validatorAgentService.verifyClaim(
+        const result = await this.verifyClaimService.execute(
             executeValidatorDto.prompt,
-            executeValidatorDto.waitForFact ?? false,
         );
 
         const dtoResult = result.map(
@@ -48,32 +53,6 @@ export class ValidatorAgentController {
         return {
             status: 'ok',
             message: 'Texto analizado correctamente.',
-            data: dtoResult,
-        };
-    }
-
-    /**
-     * Devuelve todos los hallazgos realizados por el ValidatorAgent.
-     */
-    @Get('findings')
-    @ApiOperation({
-        summary:
-            'Devuelve todos los hallazgos generados por el ValidatorAgent.',
-    })
-    @ApiResponse({
-        status: 200,
-        type: ValidationFindingDto,
-        isArray: true,
-    })
-    async getAllFindings(): Promise<DataResponse<ValidationFindingDto[]>> {
-        const findings = await this.validatorAgentService.getAllFindings();
-        const dtoResult = findings.map(
-            (finding) => new ValidationFindingDto(finding),
-        );
-
-        return {
-            status: 'ok',
-            message: 'Hallazgos encontrados correctamente.',
             data: dtoResult,
         };
     }
@@ -92,13 +71,38 @@ export class ValidatorAgentController {
     async getFindingById(
         @Param('findingId') findingId: string,
     ): Promise<DataResponse<ValidationFindingDto | null>> {
-        const finding =
-            await this.validatorAgentService.getFindingById(findingId);
+        const finding = await this.getFindingByIdService.execute(findingId);
 
         return {
             status: 'ok',
             message: finding ? 'Hallazgo recuperado.' : 'No encontrado.',
             data: finding ? new ValidationFindingDto(finding) : null,
+        };
+    }
+
+    /**
+     * Devuelve todos los hallazgos realizados por el ValidatorAgent.
+     */
+    @Get('findings')
+    @ApiOperation({
+        summary:
+            'Devuelve todos los hallazgos generados por el ValidatorAgent.',
+    })
+    @ApiResponse({
+        status: 200,
+        type: ValidationFindingDto,
+        isArray: true,
+    })
+    async getAllFindings(): Promise<DataResponse<ValidationFindingDto[]>> {
+        const findings = await this.getAllFindingsService.execute();
+        const dtoResult = findings.map(
+            (finding) => new ValidationFindingDto(finding),
+        );
+
+        return {
+            status: 'ok',
+            message: 'Hallazgos encontrados correctamente.',
+            data: dtoResult,
         };
     }
 }

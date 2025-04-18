@@ -4,10 +4,8 @@ import {
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 } from 'openai/resources/chat';
-import { ExecuteFactCheckerDto } from './dto/execute-fact-checker.dto';
+import { ExecuteFactCheckerDto } from '../dto/execute-fact-checker.dto';
 import { EventBusService } from '@/shared/events/event-bus.service';
-import { FactualCheckRequiredEventPayload } from '@/shared/events/payloads/factual-check-required-event.payload';
-import { AgentEventPayload } from '@/shared/events/types/agent-event-payload.type';
 import { AgentEventType } from '@/shared/events/types/agent-event-type.enum';
 import { AgentFactService } from '@/shared/facts/services/agent-fact.service';
 import { AgentVerificationService } from '@/shared/facts/services/agent-verification.service';
@@ -21,13 +19,15 @@ import { SearchEngineUsed } from '@/shared/types/search-engine-used.type';
 import { VerificationVerdict } from '@/shared/types/verification-verdict.type';
 
 /**
- * Servicio principal del agente FactChecker. Se encarga de buscar información,
- * consultar al modelo LLM y emitir la verificación factual.
+ * Servicio principal del agente FactChecker.
+ * Se encarga de:
+ * - Recuperar verificaciones previas si existen (por claim o claim normalizado)
+ * - Ejecutar una verificación factual completa si no hay ninguna disponible
+ * - Consultar motores de búsqueda externos y modelos LLM
+ * - Guardar y devolver el resultado con trazabilidad completa
  */
 @Injectable()
-export class FactCheckerAgentService {
-    private lastResult: FactCheckerResult | null = null;
-
+export class VerifyClaimService {
     constructor(
         private readonly logger: AgentLoggerService,
         private readonly eventBus: EventBusService,
@@ -39,11 +39,14 @@ export class FactCheckerAgentService {
     ) {}
 
     /**
-     * Ejecuta el agente de verificación factual para un claim dado.
-     * @param executeFactCheckerDto Datos de entrada para el agente
-     * @returns Resultado completo de la verificación factual
+     * Ejecuta una verificación factual sobre un claim.
+     * Si ya existe una verificación previa (exacta o equivalente), la reutiliza.
+     * En caso contrario, realiza el análisis LLM, guarda el resultado y emite evento.
+     *
+     * @param executeFactCheckerDto - DTO con el claim y opcionalmente un findingId
+     * @returns Resultado completo de la verificación factual, incluyendo ID, estado, fuentes, razonamiento, etc.
      */
-    async verifyClaim(
+    async execute(
         executeFactCheckerDto: ExecuteFactCheckerDto & {
             normalizedClaim?: string;
         },
@@ -52,8 +55,7 @@ export class FactCheckerAgentService {
 
         let engineUsed: SearchEngineUsed = 'unknown';
 
-        const factEquivalent =
-            await this.factService.findSimilarByEmbedding(claim);
+        const factEquivalent = await this.factService.execute(claim);
 
         if (factEquivalent) {
             const verification = await this.verificationService.findByClaim(
@@ -61,6 +63,7 @@ export class FactCheckerAgentService {
             );
 
             const result: FactCheckerResult = {
+                id: factEquivalent.id,
                 claim,
                 equivalentToClaim: factEquivalent.claim,
                 status: factEquivalent.status ?? 'unknown',
@@ -71,14 +74,6 @@ export class FactCheckerAgentService {
                 sources_used: verification?.sourcesUsed ?? [],
                 findingId,
             };
-
-            this.lastResult = result;
-
-            await this.eventBus.emitEvent({
-                type: AgentEventType.FACTUAL_VERIFICATION_RESULT,
-                sourceAgent: 'FactCheckerAgent',
-                data: result,
-            });
 
             return result;
         }
@@ -93,6 +88,7 @@ export class FactCheckerAgentService {
                 await this.verificationService.findByClaim(claim);
 
             const result: FactCheckerResult = {
+                id: cached.id,
                 claim: cached.claim,
                 status: cached.status ?? 'unknown',
                 sources: cached.sources ?? [],
@@ -102,8 +98,6 @@ export class FactCheckerAgentService {
                 sources_used: verification?.sourcesUsed ?? [],
                 findingId,
             };
-
-            this.lastResult = result;
 
             return result;
         }
@@ -130,7 +124,11 @@ export class FactCheckerAgentService {
             } as ChatCompletionSystemMessageParam,
             {
                 role: 'user',
-                content: `Texto a verificar:\n${claim}\n\nFuentes:\n${sourcesAsText}`,
+                content: `Texto a verificar:
+${claim}
+
+Fuentes:
+${sourcesAsText}`,
             } as ChatCompletionUserMessageParam,
         ];
 
@@ -193,7 +191,7 @@ export class FactCheckerAgentService {
             findingId,
         );
 
-        await this.factService.create(
+        const newFact = await this.factService.create(
             'fact_checker_agent',
             claim,
             status,
@@ -206,6 +204,7 @@ export class FactCheckerAgentService {
         }
 
         const result: FactCheckerResult = {
+            id: newFact.id,
             claim,
             status,
             sources: topUrls,
@@ -215,8 +214,6 @@ export class FactCheckerAgentService {
             sources_used: usedUrls,
             findingId,
         };
-
-        this.lastResult = result;
 
         await this.logger.create(
             'FactCheckerAgent',
@@ -238,27 +235,5 @@ export class FactCheckerAgentService {
         });
 
         return result;
-    }
-
-    /**
-     * Devuelve el último resultado procesado por el agente, si existe.
-     */
-    getLastResult(): FactCheckerResult | null {
-        return this.lastResult;
-    }
-
-    /**
-     * Maneja la recepción de un evento factual_check_required.
-     */
-    async handleFactualCheckRequired(
-        payload: AgentEventPayload<FactualCheckRequiredEventPayload>,
-    ): Promise<void> {
-        const { claim, context, findingId } = payload.data;
-
-        await this.verifyClaim({
-            claim,
-            context: context ?? 'context_not_provided',
-            findingId,
-        });
     }
 }

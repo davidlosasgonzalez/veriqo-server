@@ -4,9 +4,13 @@ import {
     CreateDateColumn,
     Entity,
     Index,
+    JoinColumn,
+    ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from 'typeorm';
+import { AgentFact } from './agent-fact.entity';
+import { ValidationFindingDto } from '@/agents/validator-agent/dto/validation-finding.dto';
 
 export enum AgentFindingCategory {
     FACTUAL_ERROR = 'factual_error',
@@ -32,6 +36,10 @@ export class AgentFinding {
     })
     @Column({ type: 'uuid', nullable: true })
     relatedFactId?: string;
+
+    @ManyToOne(() => AgentFact, { nullable: true })
+    @JoinColumn({ name: 'relatedFactId' })
+    relatedFact?: AgentFact;
 
     @ApiProperty({ example: 'validator_agent' })
     @Column({ type: 'varchar', length: 64 })
@@ -115,4 +123,31 @@ export class AgentFinding {
     @ApiProperty({ example: '2025-04-16T23:41:23.430Z' })
     @UpdateDateColumn({ name: 'updated_at' })
     readonly updatedAt: Date;
+
+    /**
+     * Convierte la entidad AgentFinding a su DTO correspondiente.
+     * @returns Instancia de ValidationFindingDto con los datos públicos.
+     */
+    mapToDto(): ValidationFindingDto {
+        return {
+            id: this.id,
+            claim: this.claim,
+            normalizedClaim: this.normalizedClaim,
+            category: this.category,
+            summary: this.summary,
+            explanation: this.explanation,
+            suggestion: this.suggestion,
+            keywords: this.keywords ?? [],
+            synonyms: this.synonyms ?? {},
+            namedEntities: this.namedEntities ?? [],
+            locations: this.locations ?? [],
+            searchQuery: this.searchQuery,
+            siteSuggestions: this.siteSuggestions ?? [],
+            needsFactCheck: this.needsFactCheck,
+            needsFactCheckReason: this.needsFactCheckReason,
+            relatedFactId: this.relatedFactId,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+        };
+    }
 }
