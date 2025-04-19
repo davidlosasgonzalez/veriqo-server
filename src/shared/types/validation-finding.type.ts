@@ -50,14 +50,17 @@ export type ValidationFinding = {
     /** ID de un fact verificado relacionado */
     relatedFactId?: string;
 
-    /** Estado factual del claim relacionado (true, false, possibly_true...) */
+    /** Estado factual del claim relacionado (true, false, possibly_true, unknown) */
     factStatus?: string;
 
     /** Fecha de última verificación factual */
     factCheckedAt?: string;
 
-    /** Fuentes utilizadas para determinar el estado factual */
+    /** Fuentes utilizadas por el FactChecker para emitir el veredicto */
     factSourcesUsed?: string[];
+
+    /** Razonamiento generado por el modelo para justificar el veredicto */
+    factReasoning?: string | null;
 
     /** Si el estado factual es concluyente o no */
     factIsConclusive?: boolean;

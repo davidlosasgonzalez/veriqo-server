@@ -59,12 +59,12 @@ export class AgentVerificationService {
 
         const sourceEntities = sources.map((source) =>
             this.sourceRepo.create({
+                verificationId: savedVerification.id,
                 agent,
                 claim,
                 url: source.url,
                 domain: source.domain,
                 snippet: source.snippet ?? null,
-                verification: savedVerification,
             }),
         );
 
@@ -79,7 +79,6 @@ export class AgentVerificationService {
     async findByClaim(claim: string): Promise<AgentVerification | null> {
         return this.verificationRepo.findOne({
             where: { claim },
-            relations: ['sources'],
         });
     }
 

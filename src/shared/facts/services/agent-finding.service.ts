@@ -16,7 +16,7 @@ import { AgentEventType } from '@/shared/events/types/agent-event-type.enum';
 import { ParsedFinding } from '@/shared/facts/types/parsed-finding.type';
 import { LlmRouterService } from '@/shared/llm/llm-router.service';
 import { AgentLoggerService } from '@/shared/logger/agent-logger.service';
-import { AgentPromptService } from '@/shared/prompts/agent-prompt.service';
+import { normalizeClaim } from '@/shared/utils/text/normalize-claim';
 
 /**
  * Servicio encargado de analizar afirmaciones con el agente LLM,
@@ -28,33 +28,25 @@ export class AgentFindingService {
     constructor(
         @InjectRepository(AgentFinding)
         private readonly findingRepo: Repository<AgentFinding>,
-        private readonly ai: LlmRouterService,
-        private readonly promptService: AgentPromptService,
+        private readonly llm: LlmRouterService,
         private readonly logger: AgentLoggerService,
         private readonly eventBus: EventBusService,
         private readonly factService: AgentFactService,
     ) {}
 
     /**
-     * Analiza un texto y genera uno o varios findings.
-     * Emite un evento FACTUAL_CHECK_REQUIRED si es necesario.
+     * Analiza un texto que puede contener múltiples afirmaciones
+     * y genera uno o varios findings en base a la respuesta estructurada del modelo.
+     *
      * @param prompt Texto a evaluar.
      * @returns Lista de findings guardados.
      */
     async analyzeText(prompt: string): Promise<AgentFinding[]> {
-        const systemPrompt =
-            await this.promptService.findPromptByAgent('validator_agent');
-
-        const messages: ChatCompletionMessageParam[] = [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt },
-        ];
-
-        const rawResponse = await this.ai.chatWithAgent('validator', messages);
+        const rawResponse = await this.llm.validateMultipleClaims(prompt);
 
         await this.logger.create(
             'ValidatorAgent',
-            'claude-sonnet',
+            env.VALIDATOR_MODEL,
             prompt,
             rawResponse,
             0,
@@ -80,7 +72,10 @@ export class AgentFindingService {
         const savedFindings: AgentFinding[] = [];
 
         for (const item of parsed.data) {
-            const normalized = item.normalizedClaim?.trim().toLowerCase();
+            const normalized = normalizeClaim(
+                item.normalizedClaim ?? item.claim,
+            );
+
             if (!normalized) {
                 throw new Error(
                     `Claim "${item.claim}" no tiene normalizedClaim`,
@@ -99,11 +94,8 @@ export class AgentFindingService {
                 },
             });
 
-            let existingFact =
-                await this.factService.findByNormalizedClaim(normalized);
-            if (!existingFact) {
-                existingFact = await this.factService.execute(item.claim);
-            }
+            const existingFact =
+                await this.factService.findByNormalizedClaimAny(normalized);
 
             const isRecentFact = existingFact
                 ? Date.now() - new Date(existingFact.updatedAt).getTime() <
@@ -111,8 +103,9 @@ export class AgentFindingService {
                 : false;
 
             const needsFactCheck =
-                item.needsFactCheck === true && !isRecentFact;
+                item.needsFactCheck === true && !existingFact;
 
+            // 🔁 Si hay un finding previo, actualízalo
             if (existingFinding) {
                 this.logger.debug(
                     `[AgentFindingService] Reusing existing finding for: ${item.claim}`,

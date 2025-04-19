@@ -31,9 +31,11 @@ export const envSchema = z.object({
 
     // Modelos LLM y embeddings.
     VALIDATOR_MODEL: z.string().min(1, 'VALIDATOR_MODEL no puede estar vacío'),
+    VALIDATOR_MAX_INPUT_CHARS: z.coerce.number().default(3000),
     FACTCHECKER_MODEL: z
         .string()
         .min(1, 'FACTCHECKER_MODEL no puede estar vacío'),
+    FACT_CHECK_CACHE_DAYS: z.coerce.number().int().min(1).default(7),
     EMBEDDING_MODEL: z.string().min(1, 'EMBEDDING_MODEL no puede estar vacío'),
     EMBEDDING_MODEL_PROVIDER: z
         .string()
@@ -43,9 +45,6 @@ export const envSchema = z.object({
         .min(0.0, 'Debe ser >= 0.0')
         .max(1.0, 'Debe ser <= 1.0')
         .default(0.8),
-
-    // Parámetros adicionales.
-    FACT_CHECK_CACHE_DAYS: z.coerce.number().int().min(1).default(7),
 });
 
 export type EnvSchema = z.infer<typeof envSchema>;

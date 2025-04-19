@@ -1,34 +1,41 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AgentFact } from '@/core/database/entities/agent-fact.entity';
+import { AgentVerification } from '@/core/database/entities/agent-verification.entity';
+import { ExtendedFact } from '@/shared/types/extended-fact.type';
 
 /**
- * Servicio que expone el último resultado factual registrado por el sistema,
- * independientemente del agente o claim de origen.
+ * Servicio que devuelve la última verificación factual realizada por el sistema.
+ * Incluye claim, status, reasoning, fuentes utilizadas y fecha.
  */
 @Injectable()
 export class FactCheckerResultService {
     constructor(
-        @InjectRepository(AgentFact)
-        private readonly factRepository: Repository<AgentFact>,
+        @InjectRepository(AgentVerification)
+        private readonly verificationRepo: Repository<AgentVerification>,
     ) {}
 
     /**
-     * Obtiene el último `AgentFact` registrado en base de datos.
-     * Útil para debugging, observabilidad o vistas administrativas.
+     * Recupera la última verificación factual completa registrada en la base de datos.
      *
-     * @returns Último fact verificado o `null` si aún no hay ninguno.
+     * @returns Verificación con trazabilidad completa o `null` si no existe ninguna.
      */
-    async execute(): Promise<AgentFact | null> {
-        const fact = await this.factRepository.findOne({
-            where: {},
+    async execute(): Promise<ExtendedFact | null> {
+        const verification = await this.verificationRepo.findOne({
             order: { createdAt: 'DESC' },
         });
 
-        if (!fact) return null;
+        if (!verification) return null;
 
-        const { embedding, ...rest } = fact;
-        return rest;
+        return {
+            id: verification.id,
+            claim: verification.claim,
+            status: verification.result,
+            reasoning: verification.reasoning ?? null,
+            sources_retrieved: verification.sourcesRetrieved ?? [],
+            sources_used: verification.sourcesUsed ?? [],
+            createdAt: verification.createdAt.toISOString(),
+            updatedAt: verification.updatedAt.toISOString(),
+        };
     }
 }

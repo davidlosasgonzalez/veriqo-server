@@ -32,7 +32,7 @@ export class VerifyClaimService {
         private readonly logger: AgentLoggerService,
         private readonly eventBus: EventBusService,
         private readonly factService: AgentFactService,
-        private readonly ai: LlmRouterService,
+        private readonly llm: LlmRouterService,
         private readonly promptService: AgentPromptService,
         private readonly verificationService: AgentVerificationService,
         private readonly fallbackSearch: FallbackSearchService,
@@ -43,15 +43,15 @@ export class VerifyClaimService {
      * Si ya existe una verificación previa (exacta o equivalente), la reutiliza.
      * En caso contrario, realiza el análisis LLM, guarda el resultado y emite evento.
      *
-     * @param executeFactCheckerDto - DTO con el claim y opcionalmente un findingId
-     * @returns Resultado completo de la verificación factual, incluyendo ID, estado, fuentes, razonamiento, etc.
+     * @param params Objeto con claim obligatorio, y opcionalmente findingId y normalizedClaim.
+     * @returns Resultado completo de la verificación factual.
      */
-    async execute(
-        executeFactCheckerDto: ExecuteFactCheckerDto & {
-            normalizedClaim?: string;
-        },
-    ): Promise<FactCheckerResult> {
-        const { claim, findingId, normalizedClaim } = executeFactCheckerDto;
+    async execute(params: {
+        claim: string;
+        findingId?: string;
+        normalizedClaim?: string;
+    }): Promise<FactCheckerResult> {
+        const { claim, findingId, normalizedClaim } = params;
 
         let engineUsed: SearchEngineUsed = 'unknown';
 
@@ -66,8 +66,8 @@ export class VerifyClaimService {
                 id: factEquivalent.id,
                 claim,
                 equivalentToClaim: factEquivalent.claim,
-                status: factEquivalent.status ?? 'unknown',
-                sources: factEquivalent.sources ?? [],
+                status:
+                    (factEquivalent.status as VerificationVerdict) ?? 'unknown',
                 checkedAt: factEquivalent.updatedAt.toISOString(),
                 reasoning: verification?.reasoning ?? '[Sin explicación]',
                 sources_retrieved: verification?.sourcesRetrieved ?? [],
@@ -90,8 +90,7 @@ export class VerifyClaimService {
             const result: FactCheckerResult = {
                 id: cached.id,
                 claim: cached.claim,
-                status: cached.status ?? 'unknown',
-                sources: cached.sources ?? [],
+                status: (cached.status as VerificationVerdict) ?? 'unknown',
                 checkedAt: cached.updatedAt.toISOString(),
                 reasoning: verification?.reasoning ?? '[Sin explicación]',
                 sources_retrieved: verification?.sourcesRetrieved ?? [],
@@ -108,10 +107,13 @@ export class VerifyClaimService {
         engineUsed = engine;
 
         const allUrls: string[] = retrievedResults.map((s) => s.url);
-        const topUrls = allUrls.slice(0, 5);
 
-        const systemPrompt =
-            await this.promptService.findPromptByAgent('fact_checker_agent');
+        const systemPromptRecord = await this.promptService.getPrompt(
+            'fact_checker_agent',
+            'FACTCHECK_ANALYZE_STATUS',
+        );
+
+        const systemPrompt = systemPromptRecord.prompt;
 
         const sourcesAsText = retrievedResults
             .map((s, i) => `${i + 1}. ${s.url} ${s.snippet ?? ''}`)
@@ -125,10 +127,10 @@ export class VerifyClaimService {
             {
                 role: 'user',
                 content: `Texto a verificar:
-${claim}
+                    ${claim}
 
-Fuentes:
-${sourcesAsText}`,
+                    Fuentes:
+                    ${sourcesAsText}`,
             } as ChatCompletionUserMessageParam,
         ];
 
@@ -137,7 +139,7 @@ ${sourcesAsText}`,
         let usedUrls: string[] = [];
 
         try {
-            const response = await this.ai.chatWithAgent(
+            const response = await this.llm.chatWithAgent(
                 'factchecker',
                 messages,
             );
@@ -195,7 +197,6 @@ ${sourcesAsText}`,
             'fact_checker_agent',
             claim,
             status,
-            topUrls,
             normalized,
         );
 
@@ -207,7 +208,6 @@ ${sourcesAsText}`,
             id: newFact.id,
             claim,
             status,
-            sources: topUrls,
             checkedAt: new Date().toISOString(),
             reasoning: explanation,
             sources_retrieved: allUrls,
