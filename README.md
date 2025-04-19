@@ -37,6 +37,27 @@ curl -X POST http://localhost:3001/api/validators/analyze \
   -d '{"prompt":"El sol es una estrella.","waitForFact":true}'
 ```
 
+## ⚡ Demo rápida
+
+Prueba la potencia de Veriqo rápidamente desde tu terminal:
+
+### Validar una afirmación
+
+```bash
+curl -X POST http://localhost:3001/api/validators/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"El sol es una estrella.","waitForFact":true}'
+```
+
+### Obtener la última verificación factual
+
+```bash
+curl http://localhost:3001/api/facts/verifications/last
+```
+
+> ⚠️ **Nota importante:** Actualmente el `ValidatorAgent` no está optimizado para analizar múltiples afirmaciones dentro de un mismo texto largo.
+> Se recomienda enviar afirmaciones **una por una** y no exceder los **3.000 caracteres** por entrada para asegurar resultados precisos.
+
 ### Obtener la última verificación factual
 
 ```bash
