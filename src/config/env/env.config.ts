@@ -40,13 +40,12 @@ export const env: {
 
     // Modelos LLM y embeddings.
     VALIDATOR_MODEL: string;
+    VALIDATOR_MAX_INPUT_CHARS: number;
     FACTCHECKER_MODEL: string;
+    FACT_CHECK_CACHE_DAYS: number;
     EMBEDDING_MODEL: string;
     EMBEDDING_MODEL_PROVIDER: string;
     EMBEDDING_SIMILARITY_THRESHOLD: number;
-
-    // Parámetros adicionales.
-    FACT_CHECK_CACHE_DAYS: number;
 } = {
     DB_TYPE: parsedEnv.data.DB_TYPE as SupportedDbType,
     DB_HOST: parsedEnv.data.DB_HOST,
@@ -68,12 +67,11 @@ export const env: {
 
     // Modelos LLM y embeddings.
     VALIDATOR_MODEL: parsedEnv.data.VALIDATOR_MODEL,
+    VALIDATOR_MAX_INPUT_CHARS: parsedEnv.data.VALIDATOR_MAX_INPUT_CHARS,
     FACTCHECKER_MODEL: parsedEnv.data.FACTCHECKER_MODEL,
+    FACT_CHECK_CACHE_DAYS: parsedEnv.data.FACT_CHECK_CACHE_DAYS ?? 7,
     EMBEDDING_MODEL: parsedEnv.data.EMBEDDING_MODEL,
     EMBEDDING_MODEL_PROVIDER: parsedEnv.data.EMBEDDING_MODEL_PROVIDER,
     EMBEDDING_SIMILARITY_THRESHOLD:
         parsedEnv.data.EMBEDDING_SIMILARITY_THRESHOLD ?? 0.8,
-
-    // Parámetros adicionales.
-    FACT_CHECK_CACHE_DAYS: parsedEnv.data.FACT_CHECK_CACHE_DAYS ?? 7,
 };

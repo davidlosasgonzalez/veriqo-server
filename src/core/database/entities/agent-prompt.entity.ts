@@ -5,6 +5,7 @@ import {
     Entity,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
+    Index,
 } from 'typeorm';
 
 @Entity('agent_prompts')
@@ -16,6 +17,15 @@ export class AgentPrompt {
     @ApiProperty({ example: 'validator_agent' })
     @Column({ name: 'agent', type: 'varchar', length: 64 })
     agent: string;
+
+    @ApiProperty({
+        example: 'VALIDATOR_ANALYZE_MULTICLAIM',
+        description:
+            'Clave única para identificar el tipo de prompt dentro del agente.',
+    })
+    @Index()
+    @Column({ name: 'key', type: 'varchar', length: 64 })
+    key: string;
 
     @ApiProperty({ description: 'Instrucción base del agente.' })
     @Column({ name: 'prompt', type: 'text' })

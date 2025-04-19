@@ -7,9 +7,8 @@ export type FactCheckerResult = {
     id: string;
     claim: string;
     status: VerificationVerdict;
-    sources: string[];
     checkedAt: string;
-    reasoning: string;
+    reasoning: string | null;
     sources_retrieved: string[];
     sources_used: string[];
     findingId?: string;

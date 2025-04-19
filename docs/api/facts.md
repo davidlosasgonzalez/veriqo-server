@@ -1,5 +1,3 @@
-← Volver a [README.md](../README.md)
-
 # 📡 API – Core
 
 Todos los endpoints están prefijados con `/api`.

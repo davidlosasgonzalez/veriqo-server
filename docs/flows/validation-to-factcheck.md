@@ -1,5 +1,3 @@
-← Volver a [README.md](../README.md)
-
 # 🔄 Flujo Validator → FactChecker
 
 Este documento describe el flujo completo que ocurre cuando una afirmación es analizada por el ValidatorAgent y, si es necesario, verificada por el FactCheckerAgent mediante fuentes externas.

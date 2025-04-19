@@ -1,5 +1,3 @@
-← Volver a [README.md](../README.md)
-
 # 🛠️ Prerrequisitos y Setup de Veriqo
 
 Este documento describe claramente los pasos y requisitos previos para instalar y ejecutar Veriqo correctamente en tu entorno local.

@@ -6,9 +6,7 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn,
     Index,
-    OneToMany,
 } from 'typeorm';
-import { AgentSource } from './agent-source.entity';
 
 @Entity('agent_verifications')
 @Index(['claim'])
@@ -47,9 +45,10 @@ export class AgentVerification {
         description:
             'Explicación generada por el modelo para justificar la veracidad.',
         example: 'La afirmación coincide con resultados en LinkedIn y GitHub.',
+        nullable: true,
     })
-    @Column('text')
-    reasoning: string;
+    @Column('text', { nullable: true })
+    reasoning: string | null;
 
     @ApiProperty({
         type: [String],
@@ -67,11 +66,6 @@ export class AgentVerification {
     })
     @Column('simple-array', { name: 'sources_used', nullable: true })
     sourcesUsed?: string[];
-
-    @OneToMany(() => AgentSource, (source) => source.verification, {
-        cascade: true,
-    })
-    sources: AgentSource[];
 
     @ApiProperty({ example: '2025-04-16T23:41:23.430Z' })
     @CreateDateColumn({ name: 'created_at' })
