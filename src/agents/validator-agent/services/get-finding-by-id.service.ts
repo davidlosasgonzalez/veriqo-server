@@ -1,27 +1,28 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { EventBusService } from '@/shared/events/event-bus.service';
-import { FactCheckAwaitService } from '@/shared/facts/runtime/fact-check-await.service';
-import { FactCheckLockService } from '@/shared/facts/runtime/fact-check-lock.service';
+import { Injectable } from '@nestjs/common';
 import { AgentFactService } from '@/shared/facts/services/agent-fact.service';
 import { AgentFindingService } from '@/shared/facts/services/agent-finding.service';
+import { AgentVerificationService } from '@/shared/facts/services/agent-verification.service';
 import { ValidationFinding } from '@/shared/types/validation-finding.type';
 
 /**
  * Servicio principal del ValidatorAgent.
  * Gestiona el análisis de texto, deduplicación de findings, comparación con facts previos
- * y emisión de eventos de verificación factual cuando es necesario.
+ * y enriquecimiento con razonamiento factual.
  */
 @Injectable()
 export class GetFindingByIdService {
     constructor(
         private readonly agentFindingService: AgentFindingService,
         private readonly factService: AgentFactService,
+        private readonly verificationService: AgentVerificationService,
     ) {}
 
     /**
-     * Recupera un finding específico y lo enriquece con datos de fact previos si existen.
-     * @param id ID del finding
-     * @returns Finding enriquecido o null si no existe.
+     * Recupera un finding específico y lo enriquece con datos del fact relacionado y su verificación,
+     * incluyendo razonamiento y fuentes usadas si están disponibles.
+     *
+     * @param id ID del finding a consultar.
+     * @returns DTO con información completa del hallazgo.
      */
     async execute(id: string): Promise<ValidationFinding | null> {
         const entity = await this.agentFindingService.findById(id);
@@ -33,6 +34,10 @@ export class GetFindingByIdService {
                       entity.normalizedClaim,
                   )
                 : null;
+
+        const verification = fact
+            ? await this.verificationService.findByClaim(fact.claim)
+            : null;
 
         return {
             id: entity.id,
@@ -52,7 +57,8 @@ export class GetFindingByIdService {
             relatedFactId: entity.relatedFactId ?? undefined,
             factStatus: fact?.status ?? 'unknown',
             factCheckedAt: fact?.updatedAt?.toISOString(),
-            factSourcesUsed: fact?.sources ?? [],
+            factSourcesUsed: verification?.sourcesUsed ?? [],
+            factReasoning: verification?.reasoning ?? null,
         };
     }
 }

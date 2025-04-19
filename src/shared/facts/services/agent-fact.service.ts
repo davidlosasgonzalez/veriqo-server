@@ -7,8 +7,8 @@ import { OpenAIEmbeddingService } from '@/shared/embeddings/openai-embedding.ser
 import { vectorSimilarity } from '@/shared/utils/embeddings/vector-similarity';
 
 /**
- * Servicio responsable de gestionar los hechos verificados (`AgentFact`),
- * incluyendo creación, deduplicación semántica, y búsquedas eficientes.
+ * Servicio responsable de gestionar los hechos verificados (`AgentFact`).
+ * Incluye creación, deduplicación semántica, recuperación contextual y búsqueda por similitud.
  */
 @Injectable()
 export class AgentFactService {
@@ -21,19 +21,17 @@ export class AgentFactService {
     ) {}
 
     /**
-     * Crea un fact nuevo o actualiza uno existente si ha cambiado el claim, status o las fuentes.
-     * @param _agent Agente que solicita la creación (no se usa por ahora).
-     * @param claim Afirmación original.
-     * @param status Veredicto factual asignado.
-     * @param sources Fuentes utilizadas para justificar el veredicto.
-     * @param normalizedClaim Claim ya normalizado (opcional).
-     * @returns `AgentFact` guardado o actualizado.
+     * Crea un nuevo `AgentFact` o actualiza uno existente si ha cambiado el claim, status o embedding.
+     * @param _agent Nombre del agente creador (informativo).
+     * @param claim Afirmación original en lenguaje natural.
+     * @param status Veredicto factual (`true`, `false`, `possibly_true`, `unknown`).
+     * @param normalizedClaim Versión canónica (opcional). Si no se proporciona, se genera.
+     * @returns Fact creado o actualizado.
      */
     async create(
         _agent: string,
         claim: string,
         status: AgentFact['status'],
-        sources: string[],
         normalizedClaim?: string,
     ): Promise<AgentFact> {
         const normalized =
@@ -45,28 +43,22 @@ export class AgentFactService {
             normalizedClaim: normalized,
         });
 
-        if (existing) {
-            const sourcesChanged =
-                JSON.stringify(existing.sources) !== JSON.stringify(sources);
-            const statusChanged = existing.status !== status;
+        const statusChanged = existing?.status !== status;
+        const claimChanged = existing?.claim !== claim;
 
-            if (sourcesChanged || statusChanged || existing.claim !== claim) {
-                existing.claim = claim;
-                existing.status = status;
-                existing.sources = sources;
-                existing.embedding = embedding;
-
-                return await this.factRepo.save(existing);
-            }
-
-            return existing;
+        if (existing && (statusChanged || claimChanged)) {
+            existing.claim = claim;
+            existing.status = status;
+            existing.embedding = embedding;
+            return await this.factRepo.save(existing);
         }
+
+        if (existing) return existing;
 
         const newFact = this.factRepo.create({
             claim,
             normalizedClaim: normalized,
             status,
-            sources,
             embedding,
         });
 
@@ -74,42 +66,38 @@ export class AgentFactService {
     }
 
     /**
-     * Busca un fact reciente por su claim normalizado.
-     * @param normalized Claim transformado a forma canónica.
-     * @returns El `AgentFact` si existe, o `null`.
+     * Busca un fact por normalizedClaim sin aplicar ningún filtro de antigüedad.
+     * Se utiliza por endpoints públicos como GET /facts/claim.
+     * @param normalized Normalized claim.
      */
-    async findByNormalizedClaim(normalized: string): Promise<AgentFact | null> {
-        const threshold = new Date();
-        threshold.setDate(
-            threshold.getDate() - (env.FACT_CHECK_CACHE_DAYS || 7),
-        );
-
+    async findByNormalizedClaimAny(
+        normalized: string,
+    ): Promise<AgentFact | null> {
         return this.factRepo.findOne({
-            where: {
-                normalizedClaim: normalized,
-                updatedAt: MoreThan(threshold),
-            },
+            where: { normalizedClaim: normalized },
+            order: { updatedAt: 'DESC' },
         });
     }
 
     /**
-     * Normaliza un claim de entrada y lo busca.
-     * @param claim Afirmación en lenguaje natural.
+     * Normaliza un claim crudo y lo busca sin restricciones de antigüedad.
+     * @param claim Texto original del usuario.
      */
     async findByClaim(claim: string): Promise<AgentFact | null> {
-        return this.findByNormalizedClaim(claim.toLowerCase().trim());
+        const normalized = claim.toLowerCase().trim();
+        return this.findByNormalizedClaimAny(normalized);
     }
 
     /**
-     * Busca un fact por ID.
-     * @param id UUID del `AgentFact`.
+     * Recupera un fact por su UUID.
+     * @param id UUID del fact.
      */
     async findById(id: string): Promise<AgentFact | null> {
         return this.factRepo.findOne({ where: { id } });
     }
 
     /**
-     * Devuelve todos los facts existentes en base de datos.
+     * Devuelve todos los facts registrados, ordenados por fecha de creación.
      */
     async findAll(): Promise<AgentFact[]> {
         return this.factRepo.find({
@@ -118,10 +106,13 @@ export class AgentFactService {
     }
 
     /**
-     * Ejecuta una búsqueda por similitud semántica con embeddings,
-     * y devuelve el fact más cercano si supera el umbral de similitud.
-     * @param claim Texto a evaluar.
-     * @returns `AgentFact` más similar si es reciente y suficientemente cercano.
+     * Ejecuta una búsqueda por similitud semántica.
+     * Compara embeddings del claim actual con los almacenados, y retorna el fact más similar si:
+     * - Tiene embedding
+     * - Es reciente (`updatedAt > FACT_CHECK_CACHE_DAYS`)
+     * - La similitud supera el umbral `EMBEDDING_SIMILARITY_THRESHOLD`
+     * @param claim Texto a verificar.
+     * @returns Fact similar si existe, o `null`.
      */
     async execute(claim: string): Promise<AgentFact | null> {
         const newEmbedding =

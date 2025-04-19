@@ -1,34 +1,36 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { HandleFactualCheckRequiredService } from './services';
+import { VerifyClaimService } from './services/verify-claim.service';
+import { EventBusService } from '@/shared/events/event-bus.service';
 import { FactualCheckRequiredEventPayload } from '@/shared/events/payloads/factual-check-required-event.payload';
-import { AgentEventPayload } from '@/shared/events/types/agent-event-payload.type';
 import { AgentEventType } from '@/shared/events/types/agent-event-type.enum';
 
 /**
- * Listener que conecta el FactCheckerAgent al sistema de eventos.
- * Se suscribe al evento `FACTUAL_CHECK_REQUIRED` y delega su resolución
- * al servicio de caso de uso correspondiente.
+ * Listener encargado de reaccionar a eventos FACTUAL_CHECK_REQUIRED
+ * emitidos por el ValidatorAgent. Este componente es el punto de entrada
+ * para que el FactCheckerAgent inicie el proceso de verificación factual.
+ *
+ * Al recibir un evento, delega en el servicio VerifyClaimService para realizar
+ * el análisis, generar reasoning, obtener fuentes y emitir el resultado.
  */
 @Injectable()
 export class FactCheckerAgentListener implements OnModuleInit {
     constructor(
-        private readonly eventEmitter: EventEmitter2,
-        private readonly handleFactualCheckRequiredService: HandleFactualCheckRequiredService,
+        private readonly eventBus: EventBusService,
+        private readonly verifyClaimService: VerifyClaimService,
     ) {}
 
     /**
-     * Método que se ejecuta al inicializar el módulo.
-     * Registra un listener para el evento FACTUAL_CHECK_REQUIRED y
-     * llama al servicio `HandleFactualCheckRequiredService` cuando se emite.
+     * Se ejecuta automáticamente al iniciar el módulo.
+     * Registra un listener en el EventBus para el tipo FACTUAL_CHECK_REQUIRED.
      */
     onModuleInit(): void {
-        this.eventEmitter.on(
+        this.eventBus.on<FactualCheckRequiredEventPayload>(
             AgentEventType.FACTUAL_CHECK_REQUIRED,
-            async (
-                payload: AgentEventPayload<FactualCheckRequiredEventPayload>,
-            ): Promise<void> => {
-                await this.handleFactualCheckRequiredService.execute(payload);
+            async (payload) => {
+                await this.verifyClaimService.execute({
+                    claim: payload.claim,
+                    findingId: payload.findingId,
+                });
             },
         );
     }

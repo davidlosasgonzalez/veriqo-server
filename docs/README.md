@@ -49,14 +49,22 @@ curl -X POST http://localhost:3001/api/validators/analyze \
   -d '{"prompt":"El sol es una estrella.","waitForFact":true}'
 ```
 
-### Obtener la última verificación factual
+> ℹ️ Nota importante: El ValidatorAgent es capaz de detectar y analizar múltiples afirmaciones dentro de un mismo texto.
+> El límite máximo de caracteres permitidos se define mediante la variable de entorno VALIDATOR_MAX_INPUT_CHARS (por defecto se recomienda un máximo de 3.000 caracteres).
+> Para asegurar una evaluación óptima, evita incluir afirmaciones ambiguas o mal estructuradas en el mismo bloque de texto.
+
+### Validar múltiples afirmaciones
 
 ```bash
-curl http://localhost:3001/api/facts/verifications/last
+curl -X POST http://localhost:3001/api/validators/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "La Segunda Guerra Mundial terminó en 1945.
+               La población mundial actual ha superado los 20 mil millones de personas.
+               El Quijote fue escrito por William Shakespeare.",
+    "waitForFact": true
+}'
 ```
-
-> ⚠️ **Nota importante:** Actualmente el `ValidatorAgent` no está optimizado para analizar múltiples afirmaciones dentro de un mismo texto largo.
-> Se recomienda enviar afirmaciones **una por una** y no exceder los **3.000 caracteres** por entrada para asegurar resultados precisos.
 
 ### Obtener la última verificación factual
 

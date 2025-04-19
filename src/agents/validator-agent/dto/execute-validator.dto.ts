@@ -7,6 +7,7 @@ import {
     Matches,
     MinLength,
 } from 'class-validator';
+import { env } from '@/config/env/env.config';
 
 /**
  * DTO para ejecutar el análisis de texto por el ValidatorAgent.
@@ -14,17 +15,18 @@ import {
 export class ExecuteValidatorDto {
     /**
      * Texto que deseas que el ValidatorAgent analice.
-     * Debe tener entre 5 y 2000 caracteres y contener al menos un carácter no vacío.
      */
     @ApiProperty({
         example: 'Pedro Gómez fue astronauta de la NASA.',
         description: 'Texto que deseas que el ValidatorAgent analice.',
         minLength: 5,
-        maxLength: 2000,
+        maxLength: env.VALIDATOR_MAX_INPUT_CHARS,
     })
     @IsString()
     @MinLength(5)
-    @MaxLength(2000)
+    @MaxLength(env.VALIDATOR_MAX_INPUT_CHARS, {
+        message: `El prompt no puede superar los ${env.VALIDATOR_MAX_INPUT_CHARS} caracteres.`,
+    })
     @Matches(/\S/, {
         message: 'El prompt no puede estar vacío o solo contener espacios.',
     })

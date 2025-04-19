@@ -18,7 +18,7 @@ export class ClaimNormalizerService {
      * @returns Forma normalizada del claim (ej: "pedro astronauta").
      */
     async normalize(claim: string): Promise<string> {
-        const response = await this.llmRouter.normalizeClaim(claim);
+        const response = await this.llmRouter.normalizeClaimWithLlm(claim);
         return response.normalizedClaim;
     }
 }

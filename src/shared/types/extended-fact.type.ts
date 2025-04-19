@@ -15,18 +15,16 @@ export class ExtendedFact {
     normalizedClaim?: string;
 
     @ApiProperty({
-        example: ['https://es.wikipedia.org/wiki/Velocidad_de_la_luz'],
-    })
-    sources: string[];
-
-    @ApiProperty({
         example: 'false',
         enum: ['true', 'false', 'possibly_true', 'unknown'],
     })
     status: VerificationVerdict;
 
-    @ApiProperty({ example: 'Explicación generada por el agente' })
-    reasoning: string;
+    @ApiProperty({
+        description: 'Explicación generada por el agente',
+        nullable: true,
+    })
+    reasoning: string | null;
 
     @ApiProperty({ type: [String] })
     sources_retrieved: string[];

@@ -1,5 +1,3 @@
-← Volver a [README.md](../README.md)
-
 # 📡 API – ValidatorAgent
 
 Todos los endpoints están prefijados con `/api`.

@@ -1,5 +1,3 @@
-← Volver a [README.md](../README.md)
-
 # ⚙️ Variables de entorno
 
 Este documento detalla todas las variables de entorno requeridas por Veriqo, explicando su propósito y cómo deben configurarse correctamente en el archivo `.env`.

@@ -17,15 +17,10 @@ export class HandleFactualCheckRequiredService {
     async execute(
         payload: AgentEventPayload<FactualCheckRequiredEventPayload>,
     ): Promise<void> {
-        const {
-            claim,
-            context = 'context_not_provided',
-            findingId,
-        } = payload.data;
+        const { claim, findingId } = payload.data;
 
         await this.verifyClaimService.execute({
             claim,
-            context,
             findingId,
         });
     }
