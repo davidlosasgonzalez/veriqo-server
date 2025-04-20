@@ -22,14 +22,16 @@ export class FactCheckAwaitService {
         normalizedClaim: string,
         timeoutMs = 10000,
         intervalMs = 1000,
-    ): Promise<ReturnType<AgentFactService['findByNormalizedClaim']> | null> {
+    ): Promise<ReturnType<
+        AgentFactService['findByNormalizedClaimAny']
+    > | null> {
         const start = Date.now();
 
         return new Promise((resolve) => {
             const check = async () => {
                 try {
                     const fact =
-                        await this.factService.findByNormalizedClaim(
+                        await this.factService.findByNormalizedClaimAny(
                             normalizedClaim,
                         );
 

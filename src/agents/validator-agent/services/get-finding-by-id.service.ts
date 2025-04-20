@@ -30,7 +30,7 @@ export class GetFindingByIdService {
 
         const fact =
             entity.relatedFactId && entity.normalizedClaim
-                ? await this.factService.findByNormalizedClaim(
+                ? await this.factService.findByNormalizedClaimAny(
                       entity.normalizedClaim,
                   )
                 : null;
