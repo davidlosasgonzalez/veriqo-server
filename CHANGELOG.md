@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Support for analyzing multiple claims in a single prompt (`ValidatorAgent`)
 - Input length limit defined by `VALIDATOR_MAX_INPUT_CHARS` (recommended: 3000)
 - Validation now emits separate events for each claim needing factual verification
+- Structured Search Previews system:
+    - `StructuredSearchPreview` entity for enriched factual context
+    - Utility `preprocessSearchPreview` for domain, language, sourceType and date extraction
+    - Type `RawSearchResult` to standardize search result inputs
+    - Service `StructuredPreviewService` to transform raw results into previews
+- Integrated structured previews into `VerifyClaimService`
+- Prompt formatting now includes domain, published date, title, and snippet for each source
 - New documentation examples in `README.md` to demonstrate multi-claim usage
 - Initial `CHANGELOG.md` based on Keep a Changelog format
 
@@ -51,3 +58,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 [Unreleased]: https://github.com/davidlosasgonzalez/veriqo-server/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/davidlosasgonzalez/veriqo-server/releases/tag/v1.0.0
+
+git

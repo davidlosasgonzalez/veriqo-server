@@ -14,9 +14,15 @@ import { ParsedLLMResponse } from '@/shared/llm/types/parsed-llm-response.type';
 import { AgentLoggerService } from '@/shared/logger/agent-logger.service';
 import { AgentPromptService } from '@/shared/prompts/agent-prompt.service';
 import { FallbackSearchService } from '@/shared/search/fallback-search.service';
+import { StructuredPreviewService } from '@/shared/search/services/structured-preview.service';
 import { FactCheckerResult } from '@/shared/types/fact-checker-result.type';
+import { RawSearchResult } from '@/shared/types/raw-search-result.type';
 import { SearchEngineUsed } from '@/shared/types/search-engine-used.type';
-import { VerificationVerdict } from '@/shared/types/verification-verdict.type';
+import {
+    isVerificationVerdict,
+    VerificationVerdict,
+} from '@/shared/types/verification-verdict.type';
+import { buildContextFromPreview } from '@/shared/utils/search/preprocess-preview';
 
 /**
  * Servicio principal del agente FactChecker.
@@ -36,88 +42,96 @@ export class VerifyClaimService {
         private readonly promptService: AgentPromptService,
         private readonly verificationService: AgentVerificationService,
         private readonly fallbackSearch: FallbackSearchService,
+        private readonly structuredPreviewService: StructuredPreviewService,
     ) {}
 
-    /**
-     * Ejecuta una verificación factual sobre un claim.
-     * Si ya existe una verificación previa (exacta o equivalente), la reutiliza.
-     * En caso contrario, realiza el análisis LLM, guarda el resultado y emite evento.
-     *
-     * @param params Objeto con claim obligatorio, y opcionalmente findingId y normalizedClaim.
-     * @returns Resultado completo de la verificación factual.
-     */
     async execute(params: {
         claim: string;
         findingId?: string;
         normalizedClaim?: string;
     }): Promise<FactCheckerResult> {
         const { claim, findingId, normalizedClaim } = params;
-
         let engineUsed: SearchEngineUsed = 'unknown';
 
         const factEquivalent = await this.factService.execute(claim);
-
         if (factEquivalent) {
             const verification = await this.verificationService.findByClaim(
                 factEquivalent.claim,
             );
-
-            const result: FactCheckerResult = {
+            return {
                 id: factEquivalent.id,
                 claim,
                 equivalentToClaim: factEquivalent.claim,
-                status:
-                    (factEquivalent.status as VerificationVerdict) ?? 'unknown',
+                status: isVerificationVerdict(factEquivalent.status)
+                    ? factEquivalent.status
+                    : 'unknown',
                 checkedAt: factEquivalent.updatedAt.toISOString(),
                 reasoning: verification?.reasoning ?? '[Sin explicación]',
                 sources_retrieved: verification?.sourcesRetrieved ?? [],
                 sources_used: verification?.sourcesUsed ?? [],
                 findingId,
             };
-
-            return result;
         }
 
         const normalized =
             normalizedClaim?.trim().toLowerCase() || claim.trim().toLowerCase();
-
-        const cached = await this.factService.findByNormalizedClaim(normalized);
+        const cached =
+            await this.factService.findByNormalizedClaimAny(normalized);
 
         if (cached) {
-            const verification =
-                await this.verificationService.findByClaim(claim);
-
-            const result: FactCheckerResult = {
+            const verification = await this.verificationService.findByClaim(
+                cached.claim,
+            );
+            return {
                 id: cached.id,
                 claim: cached.claim,
-                status: (cached.status as VerificationVerdict) ?? 'unknown',
+                status: isVerificationVerdict(cached.status)
+                    ? cached.status
+                    : 'unknown',
                 checkedAt: cached.updatedAt.toISOString(),
                 reasoning: verification?.reasoning ?? '[Sin explicación]',
                 sources_retrieved: verification?.sourcesRetrieved ?? [],
                 sources_used: verification?.sourcesUsed ?? [],
                 findingId,
             };
-
-            return result;
         }
 
         const { results: retrievedResults, engineUsed: engine } =
             await this.fallbackSearch.perform(claim);
-
         engineUsed = engine;
 
-        const allUrls: string[] = retrievedResults.map((s) => s.url);
+        const previews = await this.structuredPreviewService.createFromRaw(
+            retrievedResults as RawSearchResult[],
+        );
+
+        const allUrls = previews.map((p) => p.url);
 
         const systemPromptRecord = await this.promptService.getPrompt(
             'fact_checker_agent',
             'FACTCHECK_ANALYZE_STATUS',
         );
-
         const systemPrompt = systemPromptRecord.prompt;
 
-        const sourcesAsText = retrievedResults
-            .map((s, i) => `${i + 1}. ${s.url} ${s.snippet ?? ''}`)
-            .join('');
+        const sourcesAsText = previews
+            .map((p, i) => {
+                const cleanedDomain =
+                    p.domain?.replace(/^www\.|^\w{2}\./, '') ?? 'unknown';
+
+                const snippet =
+                    p.snippet?.includes('1 mil millones de miembros') ||
+                    p.snippet?.includes('Gestiona tu identidad profesional')
+                        ? '[Contenido genérico de LinkedIn]'
+                        : p.snippet || '[Sin resumen]';
+
+                return `
+                    ${i + 1}. ${p.title ? `Título: ${p.title}\n` : ''}
+                    Resumen: ${snippet}
+                    Dominio: ${cleanedDomain}
+                    Publicado: ${p.publishedAt ? new Date(p.publishedAt).toISOString() : 'Desconocida'}
+                    URL: ${p.url}
+                `;
+            })
+            .join('\n\n');
 
         const messages: ChatCompletionMessageParam[] = [
             {
@@ -126,11 +140,7 @@ export class VerifyClaimService {
             } as ChatCompletionSystemMessageParam,
             {
                 role: 'user',
-                content: `Texto a verificar:
-                    ${claim}
-
-                    Fuentes:
-                    ${sourcesAsText}`,
+                content: `Texto a verificar:\n${claim}\n\nFuentes:\n${sourcesAsText}`,
             } as ChatCompletionUserMessageParam,
         ];
 
@@ -143,7 +153,6 @@ export class VerifyClaimService {
                 'factchecker',
                 messages,
             );
-
             const parsed = JSON.parse(response) as ParsedLLMResponse;
 
             if (
@@ -176,21 +185,16 @@ export class VerifyClaimService {
             );
         }
 
-        const cleanedSources = retrievedResults.map((s) => ({
-            url: s.url,
-            domain: s.domain ?? 'unknown',
-            snippet: s.snippet ?? undefined,
-        }));
-
         await this.verificationService.saveVerification(
             'fact_checker_agent',
             claim,
             status,
             explanation,
-            cleanedSources,
+            previews,
             allUrls,
             usedUrls,
             findingId,
+            previews,
         );
 
         const newFact = await this.factService.create(
@@ -224,7 +228,7 @@ export class VerifyClaimService {
             0,
             {
                 engineUsed,
-                totalResults: result?.sources_retrieved?.length ?? 0,
+                totalResults: allUrls.length,
             },
         );
 

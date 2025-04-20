@@ -26,6 +26,7 @@ import { BraveSearchService } from './search/brave-search.service';
 import { FallbackSearchService } from './search/fallback-search.service';
 import { GoogleSearchService } from './search/google-search.service';
 import { NewsSearchService } from './search/news-search.service';
+import { StructuredPreviewService } from './search/services/structured-preview.service';
 
 import { AgentEvent } from '@/core/database/entities/agent-event.entity';
 import { AgentFact } from '@/core/database/entities/agent-fact.entity';
@@ -34,6 +35,7 @@ import { AgentLog } from '@/core/database/entities/agent-log.entity';
 import { AgentPrompt } from '@/core/database/entities/agent-prompt.entity';
 import { AgentSource } from '@/core/database/entities/agent-source.entity';
 import { AgentVerification } from '@/core/database/entities/agent-verification.entity';
+import { StructuredSearchPreview } from '@/core/database/entities/structured-search-preview.entity';
 import { PromptSeeder } from '@/core/database/seeders/prompt.seeder';
 
 /**
@@ -52,6 +54,7 @@ import { PromptSeeder } from '@/core/database/seeders/prompt.seeder';
             AgentPrompt,
             AgentSource,
             AgentVerification,
+            StructuredSearchPreview,
         ]),
     ],
     providers: [
@@ -86,6 +89,7 @@ import { PromptSeeder } from '@/core/database/seeders/prompt.seeder';
         GoogleSearchService,
         NewsSearchService,
         FallbackSearchService,
+        StructuredPreviewService,
 
         // Seeder
         PromptSeeder,
@@ -122,6 +126,7 @@ import { PromptSeeder } from '@/core/database/seeders/prompt.seeder';
         GoogleSearchService,
         NewsSearchService,
         FallbackSearchService,
+        StructuredPreviewService,
 
         // ORM exports para otros módulos
         TypeOrmModule,
