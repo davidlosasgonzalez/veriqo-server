@@ -264,18 +264,6 @@ export class AgentFindingService {
     }
 
     /**
-     * Busca un finding por claim normalizado (última versión).
-     */
-    async findByNormalizedClaim(
-        normalized: string,
-    ): Promise<AgentFinding | null> {
-        return this.findingRepo.findOne({
-            where: { normalizedClaim: normalized },
-            order: { updatedAt: 'DESC' },
-        });
-    }
-
-    /**
      * Busca un finding reciente y semánticamente equivalente a un claim normalizado.
      */
     async getRecentEquivalent(

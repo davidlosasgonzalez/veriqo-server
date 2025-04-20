@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AgentSource } from '@/core/database/entities/agent-source.entity';
 import { AgentVerification } from '@/core/database/entities/agent-verification.entity';
+import { StructuredSearchPreview } from '@/core/database/entities/structured-search-preview.entity';
 import { VerificationVerdict } from '@/shared/types/verification-verdict.type';
 
 /**
@@ -29,6 +30,7 @@ export class AgentVerificationService {
      * @param sourcesRetrieved Lista de URLs consideradas durante la búsqueda
      * @param sourcesUsed Lista de URLs utilizadas efectivamente para razonar
      * @param findingId ID del hallazgo asociado (opcional)
+     * @param previews Vistas previas estructuradas procesadas (opcional)
      */
     async saveVerification(
         agent: string,
@@ -43,6 +45,7 @@ export class AgentVerificationService {
         sourcesRetrieved: string[],
         sourcesUsed: string[],
         findingId?: string,
+        previews?: StructuredSearchPreview[],
     ): Promise<AgentVerification> {
         const verification = this.verificationRepo.create({
             agent,
@@ -57,16 +60,27 @@ export class AgentVerificationService {
         const savedVerification =
             await this.verificationRepo.save(verification);
 
-        const sourceEntities = sources.map((source) =>
-            this.sourceRepo.create({
-                verificationId: savedVerification.id,
-                agent,
-                claim,
-                url: source.url,
-                domain: source.domain,
-                snippet: source.snippet ?? null,
-            }),
-        );
+        const sourceEntities = previews?.length
+            ? previews.map((preview) =>
+                  this.sourceRepo.create({
+                      verificationId: savedVerification.id,
+                      agent,
+                      claim,
+                      url: preview.url,
+                      domain: preview.domain,
+                      snippet: preview.snippet || null,
+                  }),
+              )
+            : sources.map((source) =>
+                  this.sourceRepo.create({
+                      verificationId: savedVerification.id,
+                      agent,
+                      claim,
+                      url: source.url,
+                      domain: source.domain,
+                      snippet: source.snippet ?? null,
+                  }),
+              );
 
         await this.sourceRepo.save(sourceEntities);
 
