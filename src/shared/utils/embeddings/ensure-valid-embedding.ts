@@ -1,26 +1,26 @@
 import { isValidEmbedding } from './is-valid-embedding';
 
 /**
- * Garantiza que el embedding proporcionado sea válido.
- * Si no lo es, intenta regenerarlo con un callback y valida el nuevo resultado.
+ * Asegura que un embedding generado sea válido. Reintenta si es necesario.
  *
- * @param raw Embedding original recibido
- * @param retry Callback para intentar regenerarlo si es inválido
- * @returns Un array de números válidos
- * @throws Error si el embedding sigue siendo inválido tras el reintento
+ * @param raw Valor devuelto por el proveedor de embeddings.
+ * @param retry Lógica de reintento si el valor no es válido.
+ * @returns Vector de embedding validado.
+ * @throws Error si no se puede obtener un embedding válido.
  */
 export async function ensureValidEmbedding(
     raw: unknown,
     retry: () => Promise<unknown>,
 ): Promise<number[]> {
-    if (isValidEmbedding(raw)) return raw;
+    let result = raw;
 
-    console.warn('[Embedding inválido] Intentando regenerar...');
-    const regenerated = await retry();
-
-    if (!isValidEmbedding(regenerated)) {
-        throw new Error('[Embedding inválido] tras reintento.');
+    if (!isValidEmbedding(result)) {
+        result = await retry();
     }
 
-    return regenerated;
+    if (!isValidEmbedding(result)) {
+        throw new Error('El embedding generado no es válido.');
+    }
+
+    return result as number[];
 }

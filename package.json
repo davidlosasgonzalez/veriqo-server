@@ -1,6 +1,6 @@
 {
     "name": "veriqo-server",
-    "version": "1.0.0",
+    "version": "0.5.0-beta",
     "description": "Backend modular para verificación factual con IA. Potenciado por GPT-4o, Claude, Brave Search y Google CSE.",
     "author": "David Losas González",
     "license": "MIT",
@@ -10,9 +10,11 @@
         "start:prod": "node dist/main.js",
         "build": "nest build",
         "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-        "lint": "eslint \"{src,test}/**/*.ts\" --fix"
+        "lint": "eslint \"{src,test}/**/*.ts\" --fix",
+        "seed": "ts-node src/scripts/run-seeders.ts"
     },
     "dependencies": {
+        "@anthropic-ai/sdk": "^0.39.0",
         "@nestjs/axios": "^4.0.0",
         "@nestjs/common": "^11.0.1",
         "@nestjs/config": "^4.0.2",

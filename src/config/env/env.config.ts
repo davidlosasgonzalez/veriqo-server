@@ -11,6 +11,9 @@ if (!parsedEnv.success) {
     process.exit(1);
 }
 
+/**
+ * Tipos de bases de datos soportadas.
+ */
 export type SupportedDbType =
     | 'mysql'
     | 'postgres'
@@ -18,6 +21,9 @@ export type SupportedDbType =
     | 'sqlite'
     | 'better-sqlite3';
 
+/**
+ * Objeto que contiene las variables de entorno validadas y con valores por defecto.
+ */
 export const env: {
     // Configuración de la base de datos.
     DB_TYPE: SupportedDbType;
@@ -37,8 +43,10 @@ export const env: {
 
     // Configuración del servidor.
     PORT: number;
+    NODE_ENV: string;
 
     // Modelos LLM y embeddings.
+    LLM_PROVIDER: string;
     VALIDATOR_MODEL: string;
     VALIDATOR_MAX_INPUT_CHARS: number;
     FACTCHECKER_MODEL: string;
@@ -47,6 +55,7 @@ export const env: {
     EMBEDDING_MODEL_PROVIDER: string;
     EMBEDDING_SIMILARITY_THRESHOLD: number;
 } = {
+    // Configuración de la base de datos.
     DB_TYPE: parsedEnv.data.DB_TYPE as SupportedDbType,
     DB_HOST: parsedEnv.data.DB_HOST,
     DB_PORT: parsedEnv.data.DB_PORT ?? 3306,
@@ -64,8 +73,10 @@ export const env: {
 
     // Configuración del servidor.
     PORT: parsedEnv.data.PORT ?? 3001,
+    NODE_ENV: parsedEnv.data.NODE_ENV ?? 'development',
 
     // Modelos LLM y embeddings.
+    LLM_PROVIDER: parsedEnv.data.LLM_PROVIDER,
     VALIDATOR_MODEL: parsedEnv.data.VALIDATOR_MODEL,
     VALIDATOR_MAX_INPUT_CHARS: parsedEnv.data.VALIDATOR_MAX_INPUT_CHARS,
     FACTCHECKER_MODEL: parsedEnv.data.FACTCHECKER_MODEL,
