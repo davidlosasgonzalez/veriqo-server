@@ -11,8 +11,13 @@ import { env } from '@/config/env/env.config';
 
 /**
  * DTO de entrada para analizar una afirmación y validarla.
+ * Contiene el texto del claim a validar y una opción para esperar el resultado factual del agente.
  */
 export class VerifyClaimDto {
+    /**
+     * Texto de entrada que puede contener una o varias afirmaciones.
+     * El texto debe ser una cadena no vacía y no superar la longitud máxima permitida.
+     */
     @ApiProperty({
         description:
             'Texto de entrada que puede contener una o varias afirmaciones',
@@ -24,6 +29,10 @@ export class VerifyClaimDto {
     @IsNotEmpty()
     claim: string;
 
+    /**
+     * Indica si debe esperar el resultado factual del agente.
+     * Este valor es opcional y por defecto es false.
+     */
     @ApiPropertyOptional({
         description:
             'Indica si debe esperar el resultado factual del agente (si aplica)',

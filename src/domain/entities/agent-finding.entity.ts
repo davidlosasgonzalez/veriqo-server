@@ -5,13 +5,27 @@ import { AgentFindingSearchContext } from './agent-finding-search-context.entity
  * Representa un hallazgo detectado por el ValidatorAgent tras analizar un texto.
  */
 export class AgentFinding {
+    /* Identificador único del hallazgo. */
     id!: string;
+
+    /* Claim detectado en el texto. */
     claim!: string;
-    needsFactCheck?: boolean | null;
+
+    /* Motivo para solicitar fact-checking. */
     needsFactCheckReason?: string | null;
+
+    /* Embedding vectorial del claim. */
     embedding!: number[];
-    createdAt!: Date;
-    updatedAt!: Date;
+
+    /* Fact relacionado al hallazgo. */
     fact!: AgentFact;
+
+    /* Contexto de búsqueda asociado (opcional). */
     searchContext?: AgentFindingSearchContext | null;
+
+    /* Fecha de creación. */
+    createdAt!: Date;
+
+    /* Fecha de actualización. */
+    updatedAt!: Date;
 }

@@ -47,6 +47,8 @@ const baseConfig = {
             },
         ],
 
+        'import/newline-after-import': ['error', { count: 1 }],
+
         // Espaciado limpio entre bloques lógicos.
         'padding-line-between-statements': [
             'error',

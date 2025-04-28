@@ -3,7 +3,7 @@ import { AppModule } from '@/app.module';
 import { DatabaseSeederModule } from '@/infrastructure/database/database-seeder.module';
 
 /**
- * Función auto-invocada asíncrona para ejecutar los seeders de la base de datos.
+ * IIFE asíncrona para ejecutar los seeders de la base de datos.
  */
 void (async () => {
     try {

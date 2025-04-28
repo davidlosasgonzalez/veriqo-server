@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-
 import { IAgentFindingRepository } from '@/application/interfaces/agent-finding-repository.interface';
 import { AgentFindingRepositoryToken } from '@/application/tokens/agent-finding-repository.token';
 import { AgentFact } from '@/domain/entities/agent-fact.entity';
@@ -18,9 +17,9 @@ export class CreateAgentFindingUseCaseWrite {
     /**
      * Crea un AgentFinding inicial vinculado a su AgentFact correspondiente.
      *
-     * @param claim Afirmación ya normalizada.
-     * @param fact Fact asociado ya validado o creado.
-     * @param embedding Vector de embedding del claim.
+     * @param claim - Afirmación ya normalizada.
+     * @param fact - Fact asociado ya validado o creado.
+     * @param embedding - Vector de embedding del claim.
      * @returns El AgentFinding creado y persistido.
      */
     async execute(

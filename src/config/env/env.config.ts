@@ -46,7 +46,6 @@ export const env: {
     NODE_ENV: string;
 
     // Modelos LLM y embeddings.
-    LLM_PROVIDER: string;
     VALIDATOR_MODEL: string;
     VALIDATOR_MAX_INPUT_CHARS: number;
     FACTCHECKER_MODEL: string;
@@ -76,7 +75,6 @@ export const env: {
     NODE_ENV: parsedEnv.data.NODE_ENV ?? 'development',
 
     // Modelos LLM y embeddings.
-    LLM_PROVIDER: parsedEnv.data.LLM_PROVIDER,
     VALIDATOR_MODEL: parsedEnv.data.VALIDATOR_MODEL,
     VALIDATOR_MAX_INPUT_CHARS: parsedEnv.data.VALIDATOR_MAX_INPUT_CHARS,
     FACTCHECKER_MODEL: parsedEnv.data.FACTCHECKER_MODEL,

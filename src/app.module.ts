@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { FactCheckerAgentModule } from './agents/fact-checker/fact-checker-agent.module';
 import { typeOrmConfig } from './config/typeorm/typeorm.config';
-
 import { DatabaseSeederModule } from './infrastructure/database/database-seeder.module';
 import { ValidatorAgentModule } from '@/agents/validator/validator-agent.module';
 
@@ -17,6 +17,7 @@ import { ValidatorAgentModule } from '@/agents/validator/validator-agent.module'
         }),
         TypeOrmModule.forRoot(typeOrmConfig),
         ValidatorAgentModule,
+        FactCheckerAgentModule,
         DatabaseSeederModule,
     ],
 })

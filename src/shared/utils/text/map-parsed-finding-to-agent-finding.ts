@@ -5,8 +5,8 @@ import { ParsedFinding } from '@/shared/types/parsed-finding.type';
  * Transforma un objeto ParsedFinding en una entidad de dominio AgentFinding.
  * Esta función se utiliza tras el análisis del modelo que descompone el texto en afirmaciones.
  *
- * @param parsed Objeto extraído de la respuesta del modelo
- * @returns Instancia lista para ser persistida como AgentFinding
+ * @param parsed - Objeto extraído de la respuesta del modelo LLM.
+ * @returns Instancia lista para ser persistida como AgentFinding.
  */
 export function mapParsedFindingToAgentFinding(
     parsed: ParsedFinding,
@@ -15,7 +15,6 @@ export function mapParsedFindingToAgentFinding(
     const finding = new AgentFinding();
 
     finding.claim = parsed.claim;
-    finding.needsFactCheck = parsed.needsFactCheck ?? null;
     finding.needsFactCheckReason = parsed.needsFactCheckReason ?? null;
     finding.createdAt = now;
     finding.updatedAt = now;

@@ -21,44 +21,61 @@ import {
  */
 @Entity('agent_facts')
 export class AgentFactEntity {
+    /**
+     * Identificador único del fact.
+     */
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({
-        type: 'enum',
-        enum: AgentFactStatus,
-    })
+    /**
+     * Estado actual del fact: validated, rejected o fact_checking.
+     */
+    @Column({ type: 'enum', enum: AgentFactStatus })
     status: AgentFactStatus;
 
-    @Column({
-        type: 'enum',
-        enum: AgentFactCategory,
-        nullable: true,
-    })
-    category: AgentFactCategory | null;
+    /**
+     * Categoría semántica del fact: factual, opinion o other.
+     */
+    @Column({ type: 'enum', enum: AgentFactCategory, nullable: true })
+    category: AgentFactCategory;
 
-    @CreateDateColumn({ name: 'created_at' })
-    createdAt: Date;
+    /**
+     * Razonamiento actual asociado a este fact.
+     */
+    @OneToOne(() => AgentReasoningEntity, { nullable: true, cascade: true })
+    @JoinColumn({ name: 'current_reasoning_id' })
+    currentReasoning: AgentReasoningEntity | null;
 
-    @UpdateDateColumn({ name: 'updated_at' })
-    updatedAt: Date;
+    /**
+     * Histórico de razonamientos asociados a este fact.
+     */
+    @OneToMany(() => AgentReasoningEntity, (reasoning) => reasoning.fact)
+    reasonings: AgentReasoningEntity[];
 
-    @OneToOne(() => AgentReasoningEntity, (reasoning) => reasoning.fact, {
-        nullable: true,
-        cascade: true,
-    })
-    @JoinColumn()
-    reasoning?: AgentReasoningEntity | null;
-
+    /**
+     * Hallazgos (findings) que han dado lugar a este fact.
+     */
     @OneToMany(() => AgentFindingEntity, (finding) => finding.relatedFact)
     findings: AgentFindingEntity[];
 
+    /**
+     * Verificaciones externas asociadas a este fact.
+     */
     @OneToMany(
         () => AgentVerificationEntity,
         (verification) => verification.fact,
-        {
-            nullable: true,
-        },
     )
-    verifications?: AgentVerificationEntity[] | null;
+    verifications: AgentVerificationEntity[];
+
+    /**
+     * Fecha de creación del fact.
+     */
+    @CreateDateColumn({ name: 'created_at' })
+    createdAt: Date;
+
+    /**
+     * Fecha de última actualización del fact.
+     */
+    @UpdateDateColumn({ name: 'updated_at' })
+    updatedAt: Date;
 }

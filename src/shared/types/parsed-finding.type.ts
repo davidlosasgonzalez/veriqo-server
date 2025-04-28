@@ -10,8 +10,7 @@ export type ParsedFinding = {
     synonyms?: Record<string, string[]>;
     searchQuery: string;
     siteSuggestions?: string[];
-    category?: AgentFactCategory;
+    category: AgentFactCategory;
     explanation?: string;
-    needsFactCheck?: boolean;
     needsFactCheckReason?: string;
 };

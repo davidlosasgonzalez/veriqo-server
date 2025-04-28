@@ -13,7 +13,10 @@ import { AgentPromptEntity } from './typeorm/entities/agent-prompt.entity';
 export class DatabaseSeederModule {
     constructor(private readonly dataSource: DataSource) {}
 
-    async runSeeders() {
+    /**
+     * Ejecuta los seeders registrados.
+     */
+    async runSeeders(): Promise<void> {
         await PromptSeeder(this.dataSource);
     }
 }

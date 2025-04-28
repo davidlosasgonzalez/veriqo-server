@@ -4,9 +4,9 @@ import {
     Column,
     CreateDateColumn,
     UpdateDateColumn,
-    JoinColumn,
-    OneToOne,
     ManyToOne,
+    OneToOne,
+    JoinColumn,
 } from 'typeorm';
 import { AgentFactEntity } from './agent-fact.entity';
 import { AgentFindingSearchContextEntity } from './agent-finding-search-context.entity';
@@ -16,42 +16,65 @@ import { AgentFindingSearchContextEntity } from './agent-finding-search-context.
  */
 @Entity('agent_findings')
 export class AgentFindingEntity {
+    /**
+     * Identificador único del hallazgo.
+     */
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column('text')
+    /**
+     * Afirmación (claim) detectada que requiere análisis.
+     */
+    @Column({ type: 'text' })
     claim: string;
 
+    /**
+     * Representación vectorial (embedding) del claim.
+     */
     @Column({ type: 'simple-json' })
     embedding: number[];
 
-    @Column({ type: 'boolean', nullable: true })
-    needsFactCheck?: boolean | null;
-
-    @Column({ type: 'text', nullable: true })
+    /**
+     * Motivo por el cual se considera que necesita fact-checking.
+     */
+    @Column({ name: 'needs_fact_check_reason', type: 'text', nullable: true })
     needsFactCheckReason?: string | null;
 
-    @CreateDateColumn({ name: 'created_at' })
-    createdAt: Date;
-
-    @UpdateDateColumn({ name: 'updated_at' })
-    updatedAt: Date;
-
+    /**
+     * Fact relacionado que valida o refuta este hallazgo.
+     */
     @ManyToOne(() => AgentFactEntity, (fact) => fact.findings, {
         nullable: false,
     })
-    @JoinColumn({ name: 'relatedFactId' })
+    @JoinColumn({ name: 'related_fact_id' })
     relatedFact: AgentFactEntity;
 
-    @Column()
+    /**
+     * Identificador del fact relacionado.
+     */
+    @Column({ name: 'related_fact_id' })
     relatedFactId: string;
 
+    /**
+     * Contexto de búsqueda asociado al hallazgo.
+     */
     @OneToOne(
         () => AgentFindingSearchContextEntity,
         (search) => search.finding,
-        {
-            nullable: true,
-        },
+        { nullable: true },
     )
+    @JoinColumn({ name: 'search_context_id' })
     searchContext?: AgentFindingSearchContextEntity | null;
+
+    /**
+     * Fecha de creación del hallazgo.
+     */
+    @CreateDateColumn({ name: 'created_at' })
+    createdAt: Date;
+
+    /**
+     * Fecha de última actualización del hallazgo.
+     */
+    @UpdateDateColumn({ name: 'updated_at' })
+    updatedAt: Date;
 }

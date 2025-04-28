@@ -32,7 +32,7 @@ export class AgentFactDto {
         ],
     })
     @Expose()
-    category?: AgentFactCategory | null;
+    category: AgentFactCategory;
 
     @ApiPropertyOptional()
     @Expose()

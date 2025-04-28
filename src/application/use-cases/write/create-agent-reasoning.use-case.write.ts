@@ -9,7 +9,7 @@ export class CreateAgentReasoningUseCaseWrite {
     /**
      * Crea un AgentReasoning completo.
      *
-     * @param input Contenido del razonamiento y su resumen.
+     * @param input - Contenido del razonamiento y su resumen.
      * @returns Razonamiento creado.
      */
     async execute(input: {

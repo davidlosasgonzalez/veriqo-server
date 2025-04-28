@@ -10,9 +10,18 @@ import { Request, Response } from 'express';
 /**
  * Filtro global para capturar y manejar excepciones en toda la aplicación.
  * Ofrece respuesta uniforme para errores HTTP y no HTTP.
+ *
+ * @implements ExceptionFilter
  */
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+    /**
+     * Captura las excepciones y genera una respuesta uniforme.
+     *
+     * @param exception - La excepción que se ha lanzado.
+     * @param host - El contexto que contiene la solicitud y la respuesta.
+     * @returns Respuesta JSON con el código de estado y los detalles del error.
+     */
     catch(exception: unknown, host: ArgumentsHost): void {
         const ctx = host.switchToHttp();
         const res = ctx.getResponse<Response>();

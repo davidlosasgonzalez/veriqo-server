@@ -1,9 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-
 import { IAgentFindingRepository } from '@/application/interfaces/agent-finding-repository.interface';
 import { AgentFindingRepositoryToken } from '@/application/tokens/agent-finding-repository.token';
 import { AgentFact } from '@/domain/entities/agent-fact.entity';
-import { NormalizedClaim } from '@/shared/types/normalized-claim.type';
+import { NormalizedClaim } from '@/shared/types/parsed-types/normalized-claim.type';
 
 @Injectable()
 export class FindFactByFindingClaimUseCaseRead {
@@ -15,7 +14,7 @@ export class FindFactByFindingClaimUseCaseRead {
     /**
      * Busca un AgentFinding por su claim y devuelve el AgentFact vinculado, si lo hay.
      *
-     * @param claim Afirmación ya normalizada.
+     * @param claim - Afirmación ya normalizada.
      * @returns AgentFact si existe, o null si no hay coincidencia previa.
      */
     async execute(claim: NormalizedClaim): Promise<AgentFact | null> {

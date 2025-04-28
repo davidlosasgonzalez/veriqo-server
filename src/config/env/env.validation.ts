@@ -34,7 +34,6 @@ export const envSchema = z.object({
     NODE_ENV: z.string().min(1, 'NODE_ENV no puede estar vacío'),
 
     // Modelos LLM y embeddings.
-    LLM_PROVIDER: z.string().min(1, 'LLM_PROVIDER no puede estar vacío'),
     VALIDATOR_MODEL: z.string().min(1, 'VALIDATOR_MODEL no puede estar vacío'),
     VALIDATOR_MAX_INPUT_CHARS: z.coerce.number().default(3000),
     FACTCHECKER_MODEL: z

@@ -24,13 +24,13 @@ export class OpenAiEmbeddingService implements IEmbeddingService {
     /**
      * Genera un embedding vectorial para un texto dado.
      *
-     * @param text Texto de entrada a vectorizar.
+     * @param text - Texto de entrada a vectorizar.
      * @returns Vector numérico.
      */
     async generate(text: string): Promise<number[]> {
         const generate = async (): Promise<unknown> => {
             const response = await this.openai.embeddings.create({
-                model: 'text-embedding-3-small',
+                model: env.EMBEDDING_MODEL,
                 input: text,
                 encoding_format: 'float',
             });

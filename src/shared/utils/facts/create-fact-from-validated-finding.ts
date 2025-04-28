@@ -6,11 +6,12 @@ import { CreateFactFromValidatedFindingParams } from '@/shared/interfaces/agent-
  * Crea un AgentFact utilizando los datos validados por el primer agente.
  * Solo se invoca cuando el modelo puede resolver internamente la afirmación.
  *
- * @param createdAt - Fecha base para timestamps
- * @param status - Estado factual resultante (validated | rejected)
- * @param category - Categoría semántica del hecho
- * @param reasoning - Razonamiento completo generado por el modelo
- * @param summary - Resumen opcional del razonamiento
+ * @param createdAt - Fecha base para timestamps, que se utilizará tanto para `createdAt` como `updatedAt`.
+ * @param status - Estado factual resultante. Puede ser 'validated' o 'rejected'.
+ * @param category - Categoría semántica del hecho. Puede ser null si no se asigna.
+ * @param reasoning - Razonamiento completo generado por el modelo, explicando por qué se asignó el estado.
+ * @param summary - Resumen opcional del razonamiento. Si no se proporciona, se asigna un string vacío.
+ * @returns El objeto `AgentFact` creado, con su razonamiento asignado.
  */
 export function createFactFromValidatedFinding(
     createdAt: Date,
@@ -35,7 +36,7 @@ export function createFactFromValidatedFinding(
     reasoningEntity.createdAt = createdAt;
     reasoningEntity.updatedAt = createdAt;
 
-    fact.reasoning = reasoningEntity;
+    fact.currentReasoning = reasoningEntity;
 
     return fact;
 }

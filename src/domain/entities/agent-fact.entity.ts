@@ -10,12 +10,27 @@ import {
  * Representa un hecho verificado por el sistema, ya sea internamente o mediante el agente factual.
  */
 export class AgentFact {
+    /** Identificador único del fact. */
     id!: string;
+
+    /** Estado factual del fact. */
     status!: AgentFactStatus;
-    category?: AgentFactCategory | null;
-    createdAt!: Date;
-    updatedAt!: Date;
-    reasoning?: AgentReasoning | null;
-    verifications?: AgentVerification[] | null;
+
+    /** Categoría semántica asociada al fact. */
+    category: AgentFactCategory;
+
+    /* Razonamiento actual asociado. */
+    currentReasoning?: AgentReasoning | null;
+
+    /* Verificaciones externas asociadas. */
+    verifications?: AgentVerification[];
+
+    /* Hallazgos (findings) asociados al fact. */
     findings?: AgentFinding[];
+
+    /* Fecha de creación del fact. */
+    createdAt!: Date;
+
+    /* Fecha de última actualización del fact. */
+    updatedAt!: Date;
 }

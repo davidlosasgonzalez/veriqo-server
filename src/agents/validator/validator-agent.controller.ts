@@ -1,15 +1,16 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { VerifyClaimDto } from '../dto/verify-claim.dto';
-import { VerifyClaimService } from '../services/verify-claim.service';
+import { VerifyClaimDto } from './dto/verify-claim.dto';
+import { ValidatorAgentService } from './validator-agent.service';
 import { AgentFact } from '@/domain/entities/agent-fact.entity';
 import { AgentFinding } from '@/domain/entities/agent-finding.entity';
 import { DataResponse } from '@/shared/types/http-response.type';
+import { sanitizeFindings } from '@/shared/utils/facts/sanitize-findings';
 
 @ApiTags('Validator')
 @Controller('validators')
-export class VerifyClaimController {
-    constructor(private readonly verifyClaimService: VerifyClaimService) {}
+export class ValidatorAgentController {
+    constructor(private readonly verifyClaimService: ValidatorAgentService) {}
 
     /**
      * Analiza un texto libre, normaliza afirmaciones y las valida semánticamente.
@@ -22,7 +23,7 @@ export class VerifyClaimController {
     })
     async analyzeTextFromFreeInput(
         @Body() verifyClaimDto: VerifyClaimDto,
-    ): Promise<DataResponse<AgentFact[]>> {
+    ): Promise<DataResponse<AgentFinding[]>> {
         const result = await this.verifyClaimService.analyze(verifyClaimDto);
 
         return {
@@ -50,6 +51,8 @@ export class VerifyClaimController {
     ): Promise<DataResponse<AgentFinding | null>> {
         const finding = await this.verifyClaimService.getFindingByClaim(text);
 
+        sanitizeFindings(finding);
+
         return {
             status: 'ok',
             message: finding
@@ -73,6 +76,8 @@ export class VerifyClaimController {
     ): Promise<DataResponse<AgentFinding>> {
         const finding = await this.verifyClaimService.getFindingById(id);
 
+        sanitizeFindings(finding);
+
         return {
             status: 'ok',
             message: 'Hallazgo recuperado.',
@@ -87,6 +92,8 @@ export class VerifyClaimController {
     @ApiOperation({ summary: 'Lista todos los hallazgos (uso interno)' })
     async getAllFindings(): Promise<DataResponse<AgentFinding[]>> {
         const findings = await this.verifyClaimService.getAllFindings();
+
+        sanitizeFindings(findings);
 
         return {
             status: 'ok',

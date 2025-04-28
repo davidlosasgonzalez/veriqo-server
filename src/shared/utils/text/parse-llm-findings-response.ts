@@ -3,7 +3,10 @@ import { ParsedFinding } from '@/shared/types/parsed-finding.type';
 /**
  * Intenta parsear una respuesta textual del modelo LLM en ParsedFinding[].
  * Lanza un error si no es JSON válido o no contiene una estructura esperada.
- * @param rawOutput Respuesta cruda del modelo
+ *
+ * @param rawOutput - Respuesta cruda del modelo LLM.
+ * @throws Error si el JSON no es válido o no sigue la estructura esperada.
+ * @returns Un array de objetos ParsedFinding.
  */
 export function parseLlmFindingsResponse(rawOutput: string): ParsedFinding[] {
     try {

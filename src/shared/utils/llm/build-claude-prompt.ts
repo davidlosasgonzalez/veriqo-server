@@ -1,19 +1,24 @@
-import { LlmMessage } from '@/shared/types/llm-message.type';
+import { LlmMessage } from '@/shared/types/parsed-types/llm-message.type';
 
 /**
- * Construye un único mensaje válido para Claude combinando un prompt de sistema y uno de usuario.
- * Claude no admite role 'system', por lo que este contenido se incluye como parte del mensaje 'user'.
+ * Construye un mensaje único tipo 'user' para Claude fusionando instrucciones + texto.
+ * Claude no interpreta 'system' como OpenAI, por lo que todo debe ir como un solo mensaje de usuario.
  *
- * @param systemPrompt Texto del sistema (instrucciones del agente).
- * @param userPrompt Texto del usuario, con el contenido principal o claim.
- * @returns Mensaje LLM con role 'user' y contenido interpolado.
+ * @param systemContent - Texto del sistema (instrucciones) que debe ser enviado al modelo.
+ * @param userContent - Texto del usuario (input principal) que debe ser procesado por el modelo.
+ * @returns Un array con un único `LlmMessage` de tipo 'user', que contiene las instrucciones y el texto del usuario.
  */
 export function buildClaudePrompt(
-    systemPrompt: string,
-    userPrompt: string,
-): LlmMessage {
-    return {
-        role: 'user',
-        content: `---SYSTEM---\n${systemPrompt}\n\n---USER---\n${userPrompt}`,
-    };
+    systemContent: string,
+    userContent: string,
+): LlmMessage[] {
+    return [
+        {
+            role: 'user',
+            content: `${systemContent.trim()}
+
+            Texto a analizar:
+            ${userContent.trim()}`,
+        },
+    ];
 }
