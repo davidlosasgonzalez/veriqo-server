@@ -4,7 +4,7 @@ import { AgentVerification } from './agent-verification.entity';
 import {
     AgentFactCategory,
     AgentFactStatus,
-} from '@/shared/types/agent-fact.types';
+} from '@/shared/types/enums/agent-fact.types';
 
 /**
  * Representa un hecho verificado por el sistema, ya sea internamente o mediante el agente factual.
@@ -17,20 +17,20 @@ export class AgentFact {
     status!: AgentFactStatus;
 
     /** Categoría semántica asociada al fact. */
-    category: AgentFactCategory;
+    category!: AgentFactCategory;
 
-    /* Razonamiento actual asociado. */
-    currentReasoning?: AgentReasoning | null;
-
-    /* Verificaciones externas asociadas. */
+    /** Verificaciones externas asociadas. */
     verifications?: AgentVerification[];
 
-    /* Hallazgos (findings) asociados al fact. */
+    /** Razonamientos generados directamente desde el fact (sin verificación externa). */
+    reasonings?: AgentReasoning[];
+
+    /** Hallazgos (findings) asociados al fact. */
     findings?: AgentFinding[];
 
-    /* Fecha de creación del fact. */
+    /** Fecha de creación del fact. */
     createdAt!: Date;
 
-    /* Fecha de última actualización del fact. */
+    /** Fecha de última actualización del fact. */
     updatedAt!: Date;
 }

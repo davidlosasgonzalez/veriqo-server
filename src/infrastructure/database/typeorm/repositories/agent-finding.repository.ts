@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IAgentFindingRepository } from '@/application/interfaces/agent-finding-repository.interface';
@@ -9,9 +9,6 @@ import { AgentReasoning } from '@/domain/entities/agent-reasoning.entity';
 import { AgentVerification } from '@/domain/entities/agent-verification.entity';
 import { AgentFindingSearchContextEntity } from '@/infrastructure/database/typeorm/entities/agent-finding-search-context.entity';
 import { AgentFindingEntity } from '@/infrastructure/database/typeorm/entities/agent-finding.entity';
-import { AgentReasoningEntity } from '@/infrastructure/database/typeorm/entities/agent-reasoning.entity';
-import { AgentVerificationEntity } from '@/infrastructure/database/typeorm/entities/agent-verification.entity';
-import { SearchEngineUsed } from '@/shared/types/enums/search-engine-used.enum';
 import { cosineSimilarity } from '@/shared/utils/math/cosine-similarity';
 
 /**
@@ -26,6 +23,7 @@ export class AgentFindingRepository implements IAgentFindingRepository {
 
     /**
      * Guarda múltiples hallazgos en base de datos.
+     * @param findings - Lista de entidades de dominio a persistir.
      */
     async saveMany(findings: AgentFinding[]): Promise<void> {
         const entities = findings.map(this.toOrmEntity);
@@ -35,6 +33,8 @@ export class AgentFindingRepository implements IAgentFindingRepository {
 
     /**
      * Guarda un hallazgo individual en base de datos.
+     * @param finding - Entidad de dominio a guardar.
+     * @returns Hallazgo persistido como entidad de dominio.
      */
     async save(finding: AgentFinding): Promise<AgentFinding> {
         const entity = this.toOrmEntity(finding);
@@ -45,58 +45,18 @@ export class AgentFindingRepository implements IAgentFindingRepository {
 
     /**
      * Busca un hallazgo por su ID.
+     * @param id - Identificador único del hallazgo.
+     * @returns Entidad de dominio si se encuentra, o null en caso contrario.
      */
     async findById(id: string): Promise<AgentFinding | null> {
         const found = await this.agentFindingRepo.findOne({
             where: { id },
             relations: [
                 'relatedFact',
-                'relatedFact.currentReasoning',
                 'relatedFact.verifications',
+                'relatedFact.verifications.reasoning',
                 'searchContext',
                 'searchContext.finding',
-            ],
-        });
-
-        if (!found) {
-            return null;
-        }
-
-        const domainFinding = this.toDomainEntity(found);
-
-        if (domainFinding.searchContext) {
-            domainFinding.searchContext.searchResults =
-                domainFinding.searchContext.searchResults ?? [];
-        }
-
-        return domainFinding;
-    }
-
-    /**
-     * Devuelve todos los hallazgos almacenados.
-     */
-    async findAll(): Promise<AgentFinding[]> {
-        const all = await this.agentFindingRepo.find({
-            relations: [
-                'relatedFact',
-                'relatedFact.currentReasoning',
-                'searchContext',
-            ],
-        });
-
-        return all.map((entity) => this.toDomainEntity(entity));
-    }
-
-    /**
-     * Busca un hallazgo por el claim exacto.
-     */
-    async findByClaim(claim: string): Promise<AgentFinding | null> {
-        const found = await this.agentFindingRepo.findOne({
-            where: { claim },
-            relations: [
-                'relatedFact',
-                'relatedFact.currentReasoning',
-                'relatedFact.verifications',
             ],
         });
 
@@ -104,7 +64,42 @@ export class AgentFindingRepository implements IAgentFindingRepository {
     }
 
     /**
-     * Busca el hallazgo con embedding más similar que supere el umbral.
+     * Recupera todos los hallazgos almacenados en base de datos.
+     * @returns Lista de entidades de dominio AgentFinding.
+     */
+    async findAll(): Promise<AgentFinding[]> {
+        const all = await this.agentFindingRepo.find({
+            relations: ['relatedFact', 'searchContext'],
+        });
+
+        return all.map((entity) => this.toDomainEntity(entity));
+    }
+
+    /**
+     * Busca un hallazgo por el texto exacto del claim.
+     * @param claim - Texto normalizado del claim.
+     * @returns Entidad de dominio si existe, o null si no se encuentra.
+     */
+    async findByClaim(claim: string): Promise<AgentFinding | null> {
+        const found = await this.agentFindingRepo.findOne({
+            where: { claim },
+            relations: [
+                'relatedFact',
+                'relatedFact.verifications',
+                'relatedFact.verifications.reasoning',
+                'searchContext',
+                'searchContext.finding',
+            ],
+        });
+
+        return found ? this.toDomainEntity(found) : null;
+    }
+
+    /**
+     * Busca el hallazgo cuyo embedding sea más similar al vector recibido.
+     * @param vector - Embedding vectorial a comparar.
+     * @param threshold - Umbral de similitud mínima aceptada.
+     * @returns Hallazgo más similar que supere el umbral, o null si no hay coincidencias suficientes.
      */
     async findMostSimilarEmbedding(
         vector: number[],
@@ -129,7 +124,14 @@ export class AgentFindingRepository implements IAgentFindingRepository {
     }
 
     /**
-     * Convierte una entidad ORM en una entidad de dominio.
+     * Convierte una entidad ORM a entidad de dominio AgentFinding.
+     * @param entity - Entidad cargada desde base de datos.
+     * @returns Instancia de dominio AgentFinding.
+     */
+    /**
+     * Convierte una entidad ORM a entidad de dominio AgentFinding.
+     * @param entity - Entidad cargada desde base de datos.
+     * @returns Instancia de dominio AgentFinding.
      */
     private toDomainEntity(entity: AgentFindingEntity): AgentFinding {
         const finding = new AgentFinding();
@@ -149,17 +151,37 @@ export class AgentFindingRepository implements IAgentFindingRepository {
             fact.createdAt = entity.relatedFact.createdAt;
             fact.updatedAt = entity.relatedFact.updatedAt;
 
-            if (entity.relatedFact.currentReasoning) {
-                fact.currentReasoning = this.toDomainReasoning(
-                    entity.relatedFact.currentReasoning,
-                );
-            }
+            fact.verifications =
+                entity.relatedFact.verifications?.map((v) => {
+                    const verification = new AgentVerification();
 
-            if (entity.relatedFact.verifications) {
-                fact.verifications = entity.relatedFact.verifications.map(
-                    (verification) => this.toDomainVerification(verification),
-                );
-            }
+                    verification.id = v.id;
+                    verification.engineUsed = v.engineUsed;
+                    verification.confidence = v.confidence;
+                    verification.sourcesUsed = v.sourcesUsed ?? [];
+                    verification.sourcesRetrieved = v.sourcesRetrieved ?? [];
+                    verification.isOutdated = v.isOutdated ?? false;
+                    verification.createdAt = v.createdAt;
+                    verification.updatedAt = v.updatedAt;
+                    verification.factId = v.fact?.id ?? null;
+
+                    if (v.reasoning) {
+                        const reasoning = new AgentReasoning();
+
+                        reasoning.id = v.reasoning.id;
+                        reasoning.summary = v.reasoning.summary;
+                        reasoning.content = v.reasoning.content;
+                        reasoning.createdAt = v.reasoning.createdAt;
+                        reasoning.updatedAt = v.reasoning.updatedAt;
+                        reasoning.verificationId =
+                            v.reasoning.verification?.id ?? null;
+                        reasoning.factId = v.reasoning.fact?.id ?? null;
+
+                        verification.reasoning = reasoning;
+                    }
+
+                    return verification;
+                }) ?? [];
 
             finding.fact = fact;
         }
@@ -174,72 +196,27 @@ export class AgentFindingRepository implements IAgentFindingRepository {
     }
 
     /**
-     * Convierte un contexto de búsqueda ORM a dominio.
+     * Convierte una entidad ORM AgentFindingSearchContext a su representación de dominio.
+     * @param entity - Entidad de contexto de búsqueda ORM.
+     * @returns Objeto de dominio AgentFindingSearchContext.
      */
     private toDomainSearchContext(
         entity: AgentFindingSearchContextEntity,
     ): AgentFindingSearchContext {
         return {
             id: entity.id,
-            findingId: entity.finding?.id ?? '',
-            keywords: entity.keywords,
-            synonyms: entity.synonyms ?? null,
+            findingId: entity.finding?.id ?? undefined,
             searchQuery: entity.searchQuery,
             siteSuggestions: entity.siteSuggestions ?? null,
-            searchResults: entity.searchResults ?? null,
             createdAt: entity.createdAt,
             updatedAt: entity.updatedAt,
         };
     }
 
     /**
-     * Convierte un razonamiento ORM a dominio.
-     */
-    private toDomainReasoning(entity: AgentReasoningEntity): AgentReasoning {
-        return {
-            id: entity.id,
-            content: entity.content,
-            summary: entity.summary,
-            createdAt: entity.createdAt,
-            updatedAt: entity.updatedAt,
-        };
-    }
-
-    /**
-     * Convierte una verificación ORM a dominio.
-     */
-    private toDomainVerification(
-        entity: AgentVerificationEntity,
-    ): AgentVerification {
-        const verification = new AgentVerification();
-
-        verification.id = entity.id;
-        verification.engineUsed = entity.engineUsed as SearchEngineUsed;
-        verification.confidence = entity.confidence;
-        verification.sourcesUsed = entity.sourcesUsed ?? [];
-        verification.sourcesRetrieved = entity.sourcesRetrieved ?? [];
-        verification.isOutdated = entity.isOutdated ?? false;
-        verification.createdAt = entity.createdAt;
-        verification.updatedAt = entity.updatedAt;
-        verification.reasoning = entity.reasoning
-            ? this.toDomainReasoning(entity.reasoning)
-            : undefined;
-
-        verification.fact = entity.fact
-            ? {
-                  id: entity.fact.id,
-                  status: entity.fact.status,
-                  category: entity.fact.category,
-                  createdAt: entity.fact.createdAt,
-                  updatedAt: entity.fact.updatedAt,
-              }
-            : null;
-
-        return verification;
-    }
-
-    /**
-     * Convierte una entidad de dominio en una entidad ORM.
+     * Convierte una entidad de dominio AgentFinding a su representación ORM.
+     * @param domain - Entidad de dominio AgentFinding.
+     * @returns Entidad ORM lista para persistir.
      */
     private toOrmEntity(domain: AgentFinding): AgentFindingEntity {
         const entity = new AgentFindingEntity();

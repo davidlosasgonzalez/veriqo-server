@@ -2,10 +2,12 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from 'typeorm';
-import { AgentPromptRole } from '@/shared/types/parsed-types/agent-prompt.types';
+import { AgentLogEntity } from './agent-log.entity';
+import { AgentPromptRole } from '@/shared/types/enums/agent-prompt.types';
 
 /**
  * Representa un fragmento de prompt asociado a un agente y una función específica.
@@ -44,6 +46,12 @@ export class AgentPromptEntity {
      */
     @Column('text')
     content: string;
+
+    /**
+     * Logs asociados a este prompt (opcional).
+     */
+    @OneToMany(() => AgentLogEntity, (log) => log.prompt)
+    logs: AgentLogEntity[];
 
     /**
      * Fecha de creación del registro.

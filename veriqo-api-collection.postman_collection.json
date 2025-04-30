@@ -22,7 +22,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"prompt\": \"Trump ha subido los aranceles a varios países en el año 2025.\",\n  \"waitForFact\": true\n}"
+							"raw": "{\n  \"claim\": \"Albert Einstein nació en Alemania, pero en realidad fue su primo quien formuló la Teoría de la Relatividad. Además, en 2023 se descubrió que Einstein trabajó para la NASA en los años 50. La velocidad de la luz puede superarse con partículas cuánticas. Por otro lado, Trump ha puesto aranceles a varios países en 2025 y actualmente existen 6 especies de tigres.\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/validators/analyze",
@@ -83,7 +83,67 @@
 							"variable": [
 								{
 									"key": "findingId",
-									"value": "9a483916-7c37-4cc9-b4d7-35a5207438f8"
+									"value": "7450ada9-928f-49f8-b129-15d36aef5bf9"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "finding-by-claim",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/validators/findings/by-claim?text=Trump ha puesto aranceles a varios países en 2025",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"validators",
+								"findings",
+								"by-claim"
+							],
+							"query": [
+								{
+									"key": "text",
+									"value": "Trump ha puesto aranceles a varios países en 2025"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "fact-by-id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/validators/facts/:factId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"validators",
+								"facts",
+								":factId"
+							],
+							"variable": [
+								{
+									"key": "factId",
+									"value": "2badcc84-1178-4ffa-b4b3-36c3a4904e3d"
 								}
 							]
 						}
@@ -115,69 +175,13 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/facts/verifications",
+							"raw": "{{base_url}}/facts/verify",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"facts",
-								"verifications"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "by-claim",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"claim\": \"9a483916-7c37-4cc9-b4d7-35a5207438f8\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/facts/claim",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"facts",
-								"claim"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "verification-last",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/facts/verifications/last",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"facts",
-								"verifications",
-								"last"
+								"verify"
 							]
 						}
 					},
@@ -206,38 +210,7 @@
 							"variable": [
 								{
 									"key": "verificationId",
-									"value": "24a268a4-c7fd-454f-9a2a-a1f47662db7b"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "verification-history",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/facts/verifications/:factId/history",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"facts",
-								"verifications",
-								":factId",
-								"history"
-							],
-							"variable": [
-								{
-									"key": "factId",
-									"value": "9a483916-7c37-4cc9-b4d7-35a5207438f8"
+									"value": "f66325f6-b2ee-4d4e-a5c0-5a69162d89f0"
 								}
 							]
 						}
@@ -262,31 +235,6 @@
 							"path": [
 								"core",
 								"logs"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "prompt-by-agent",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/core/prompts/:agent",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"core",
-								"prompts",
-								":agent"
-							],
-							"variable": [
-								{
-									"key": "agent",
-									"value": "validator_agent"
-								}
 							]
 						}
 					},

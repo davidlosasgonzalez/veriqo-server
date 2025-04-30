@@ -1,57 +1,63 @@
-# 🤖 Modelos LLM y Decisiones Técnicas
+# 🤖 Modelos LLM y Decisiones Técnicas – Veriqo
 
-Este documento detalla las decisiones clave relacionadas con los modelos de lenguaje utilizados en Veriqo, así como su rol dentro del sistema de verificación factual.
+Este documento resume las decisiones arquitectónicas y operativas que sustentan el uso de modelos de lenguaje (LLM) en el sistema Veriqo.
 
-## 🧠 Modelos utilizados
+## 🧠 Modelos utilizados en Veriqo
 
-| Agente           | Modelo LLM             | Proveedor | Finalidad principal                                 |
-| ---------------- | ---------------------- | --------- | --------------------------------------------------- |
-| ValidatorAgent   | Claude 3.5 Sonnet      | Anthropic | Evaluar afirmaciones, detectar ambigüedad o errores |
-| FactCheckerAgent | GPT-4o                 | OpenAI    | Sintetizar evidencia y emitir veredicto factual     |
-| Embeddings       | text-embedding-3-small | OpenAI    | Normalización semántica y detección de duplicados   |
+| Agente           | Modelo LLM             | Proveedor | Finalidad principal                                        |
+| ---------------- | ---------------------- | --------- | ---------------------------------------------------------- |
+| ValidatorAgent   | Claude 3.5 Sonnet      | Anthropic | Evaluación contextual, detección de ambigüedades o errores |
+| FactCheckerAgent | GPT-4o                 | OpenAI    | Síntesis de evidencia y emisión de veredictos factuales    |
+| Embeddings       | text-embedding-3-small | OpenAI    | Normalización semántica y deduplicación de afirmaciones    |
 
-> 🧪 Estos modelos han sido seleccionados tras experimentación comparativa, priorizando velocidad, coste y rendimiento contextual.
+> 🧪 Esta combinación fue definida tras pruebas comparativas, priorizando latencia baja, coste por token y calidad contextual.
 
-## 🔍 Criterios de selección
+## 🔍 Criterios técnicos de selección
 
-Las decisiones técnicas se han basado en los siguientes factores:
+Las decisiones han sido guiadas por:
 
-- **Calidad de comprensión contextual:** Fundamental para distinguir ambigüedad o falsedad sutil.
-- **Velocidad de respuesta:** El sistema requiere baja latencia para flujos síncronos (`waitForFact: true`).
-- **Coste por token:** Se ha priorizado Claude 3.5 para análisis rápidos por su balance entre precio y calidad.
-- **Compatibilidad con Node.js:** Todos los proveedores ofrecen APIs HTTP estables, integradas mediante `AiRouterService`.
+- **Comprensión contextual avanzada**: imprescindible para evaluar veracidad, contradicción o ambigüedad.
+- **Rendimiento / latencia**: se exige rapidez para mantener la experiencia del usuario fluida.
+- **Coste eficiente**: Claude 3.5 se elige por su buen balance coste/calidad para tareas de validación inicial.
+- **Integración limpia con Node.js**: todos los modelos se consumen vía API HTTP desde `AiRouterService`.
 
 ## 🧩 Sistema de ruteo inteligente (`AiRouterService`)
 
-Veriqo implementa un servicio centralizado que permite:
+Veriqo centraliza la selección y consumo de modelos mediante un servicio inteligente:
 
-- Seleccionar dinámicamente el modelo según el agente (`FACTCHECKER_MODEL`, `VALIDATOR_MODEL` en `.env`).
-- Cambiar de proveedor sin modificar lógica interna.
-- Añadir nuevos modelos de forma modular (ej. local LLMs futuros).
+- Permite cambiar el modelo por agente desde `.env` (`LLM_VALIDATOR_MODEL`, `LLM_FACTCHECKER_MODEL`).
+- Aísla la lógica de cada agente respecto a la implementación del modelo.
+- Facilita la extensión futura hacia nuevos modelos o proveedores.
 
-```ts
-// Ejemplo simplificado de selección de modelo
-const model = env.VALIDATOR_MODEL === 'claude' ? 'claude-3-5-sonnet' : 'gpt-4o';
-```
+## ♻️ Posibilidades de evolución
 
-## ♻️ Posibilidades futuras
+- Soporte para **modelos locales** mediante Ollama o LM Studio (en pausa por ahora).
+- Embeddings alternativos open source (`bge-small`, `e5-base`, etc.).
+- Clasificación previa para elegir automáticamente el mejor modelo según el tipo de afirmación.
 
-- Soporte experimental para **modelos locales** con Ollama o LM Studio (descartado por rendimiento actual).
-- Alternativas a embeddings de OpenAI mediante `open-source` (ej. `BGE-small`, `E5-base`).
-- Autoselección de modelo óptimo según tipo de afirmación (clasificación previa).
+### 🔄 Modelos descartados en pruebas
 
-### 🔄 Experimentos descartados
+Durante el desarrollo se evaluaron localmente:
 
-Durante el desarrollo se probaron modelos locales como **Mistral-7B**, **DeepSeek**, y otros modelos de Ollama, pero se descartaron temporalmente debido a:
+- **Mistral-7B**, **DeepSeek**, **TinyLlama**, etc.
 
-- **Latencias elevadas** (superiores a 30 segundos por respuesta).
-- **Consumo de recursos excesivo** en entornos no GPU.
-- **Limitaciones de contexto** para análisis complejos.
+Fueron descartados temporalmente por:
 
-> Estos modelos podrían retomarse en el futuro si mejoran su rendimiento o se incorpora hardware especializado.
+- Latencia elevada (>30s incluso en CPU moderna).
+- Altos requisitos de memoria sin aceleración GPU.
+- Rendimiento pobre en prompts complejos sin fine-tuning.
 
-## 🛡️ Consideraciones de seguridad
+> ⚠️ El equipo de desarrollo utiliza un portátil con 16 GB de RAM y sin GPU dedicada. Por ese motivo, los modelos locales provocaban una degradación importante de latencia, por lo que se priorizó el uso de APIs externas. Sin embargo, otros desarrolladores con hardware más potente pueden experimentar mejores resultados con modelos locales.
 
-- Ningún prompt enviado a modelos externos contiene datos personales sensibles.
-- Toda la interacción con LLMs es **asíncrona y trazable**.
-- Las respuestas generadas se almacenan con `timestamp` y fuentes usadas para auditoría completa.
+## 🛡️ Consideraciones de seguridad y trazabilidad
+
+- No se envía información sensible en prompts a modelos externos.
+- Todas las llamadas son asíncronas y registradas con trazabilidad completa.
+- Todas las respuestas generadas por los agentes se registran con trazabilidad completa en `agent_logs`, incluyendo el modelo, prompt, resultado, tokens y tiempo de ejecución.
+
+## 📁 Archivos relacionados
+
+- `src/shared/ai/ai-router.service.ts`
+- `.env` (`LLM_*`)
+- `src/agents/*/*.agent.service.ts`
+- `src/database/entities/agent-log.entity.ts`

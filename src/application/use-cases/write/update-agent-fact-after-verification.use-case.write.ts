@@ -4,10 +4,10 @@ import { AgentFactRepositoryToken } from '@/application/tokens/agent-fact-reposi
 import {
     AgentFactCategory,
     AgentFactStatus,
-} from '@/shared/types/agent-fact.types';
+} from '@/shared/types/enums/agent-fact.types';
 
 /**
- * Caso de uso WRITE para actualizar el estado y el razonamiento actual de un AgentFact tras una verificación factual.
+ * Caso de uso WRITE para actualizar el estado y categoría de un AgentFact tras una verificación factual.
  */
 @Injectable()
 export class UpdateAgentFactAfterVerificationUseCaseWrite {
@@ -17,27 +17,19 @@ export class UpdateAgentFactAfterVerificationUseCaseWrite {
     ) {}
 
     /**
-     * Actualiza un AgentFact con un nuevo estado y un nuevo razonamiento.
+     * Actualiza el estado y categoría de un AgentFact.
      *
-     * @param params - Objeto que contiene el ID del fact, el nuevo estado y el razonamiento actualizado.
+     * @param params - Contiene el ID del fact, su nuevo estado y categoría.
      */
     async execute(params: {
         factId: string;
-        newStatus: string;
-        newCategory: string;
-        newReasoning: {
-            summary: string;
-            content: string;
-        };
+        newStatus: AgentFactStatus;
+        newCategory: AgentFactCategory;
     }): Promise<void> {
-        await this.agentFactRepository.updateAfterVerification({
+        await this.agentFactRepository.updateStatusAndCategory({
             factId: params.factId,
-            newStatus: params.newStatus as AgentFactStatus,
-            newCategory: params.newCategory as AgentFactCategory,
-            newReasoning: {
-                summary: params.newReasoning.summary,
-                content: params.newReasoning.content,
-            },
+            newStatus: params.newStatus,
+            newCategory: params.newCategory,
         });
     }
 }

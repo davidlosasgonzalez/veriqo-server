@@ -2,41 +2,48 @@
 
 ## 🌐 Contexto y alcance
 
-Veriqo es un sistema especializado en la verificación factual automatizada de afirmaciones de interés público, tales como noticias, declaraciones políticas, eventos históricos, ciencia y tecnología, utilizando inteligencia artificial avanzada combinada con fuentes verificables. No está diseñado para búsquedas personales o para verificar perfiles individuales poco conocidos.
+**Veriqo** es un sistema especializado en la verificación factual automatizada de afirmaciones de interés público, como noticias, declaraciones políticas, eventos históricos, ciencia y tecnología. Combina inteligencia artificial avanzada con fuentes verificables y se basa en una arquitectura desacoplada mediante agentes inteligentes.
+
+> ⚠️ Veriqo **no está diseñado** para verificar perfiles personales o contenido sin trazabilidad. Su enfoque es la verificación objetiva y documentada de afirmaciones relevantes para el conocimiento general.
 
 ### ✅ Casos ideales
 
-- Declaraciones públicas verificables.
-- Datos históricos, científicos o tecnológicos.
-- Artículos periodísticos y contenido educativo.
+- Declaraciones verificables realizadas por figuras públicas.
+- Datos históricos, científicos, económicos o tecnológicos.
+- Afírmaciones contenidas en noticias, reportes y artículos especializados.
 
 ### ⚠️ Casos no recomendados
 
-- Perfiles individuales poco conocidos.
-- Contenido sin fuentes trazables.
-- Chatbots conversacionales.
+- Búsqueda de información sobre personas poco conocidas.
+- Afírmaciones sin posibilidad de trazabilidad o sin fuentes.
+- Uso como chatbot generalista o generador de texto conversacional.
 
 ## 🔥 Características clave
 
-| #   | Funcionalidad              | Descripción                                                                                                  |
-| --- | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 1   | Detección inteligente      | `ValidatorAgent` encuentra afirmaciones verificables y filtra irrelevancias.                                 |
-| 2   | Verificación con evidencia | `FactCheckerAgent` consulta fuentes reales y emite veredictos (`true`, `false`, `possibly_true`, `unknown`). |
-| 3   | Trazabilidad total         | Hallazgos, razonamiento, fuentes y métricas se persisten en MySQL.                                           |
-| 4   | Arquitectura desacoplada   | Agentes conectados mediante un EventBus, escalables de forma independiente.                                  |
-| 5   | Normalización semántica    | Embeddings (`text‑embedding‑3‑small`) evitan duplicados y reutilizan facts.                                  |
-| 6   | Documentación viva         | Swagger UI expone documentación interactiva en `/api-docs`.                                                  |
+| #   | Funcionalidad              | Descripción                                                                                                                                                                     |
+| --- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Detección inteligente      | `ValidatorAgent` detecta afirmaciones verificables, intenta validarlas con su conocimiento interno y delega si es necesario.                                                    |
+| 2   | Verificación con evidencia | `FactCheckerAgent` analiza fuentes reales y asigna un nivel de confianza (confidence) entre 0 y 1 que cuantifica la fiabilidad del veredicto basado en la evidencia encontrada. |
+| 3   | Trazabilidad total         | Razonamientos, fuentes, embeddings y resultados quedan almacenados en MySQL.                                                                                                    |
+| 4   | Arquitectura desacoplada   | Agentes independientes coordinados por eventos, escalables horizontalmente.                                                                                                     |
+| 5   | Deduplicación semántica    | Embeddings con `text-embedding-3-small` de OpenAI para evitar duplicados y reusar facts existentes.                                                                             |
+| 6   | Documentación viva         | Swagger UI y Markdown documentado en `/docs`, con ejemplos y estructuras completas.                                                                                             |
 
 ## 🛠️ Stack tecnológico
 
 - **Lenguaje & Runtime:** TypeScript 5 · Node.js 18
-- **Framework Web:** NestJS 11 (Arquitectura modular y Dependency Injection)
-- **Persistencia de Datos:** MySQL 5.7 con TypeORM 0.3
-- **IA & Embeddings:** OpenAI (GPT-4o, text-embedding-3-small) · Anthropic (Claude 3.5 Sonnet)
-- **Fuentes de Búsqueda:** Brave Search API · Google Custom Search API · NewsAPI
-- **Observabilidad y Documentación:** Swagger (OpenAPI) · Logger HTTP con Morgan
-- **Calidad del Código:** ESLint · Prettier · Zod (parsing robusto y validación segura)
-- **Arquitectura de Agentes:** [Agno](https://docs.agno.com) — biblioteca especializada para construir agentes autónomos con memoria, herramientas y capacidades avanzadas de razonamiento.
+- **Framework Web:** NestJS 11 con arquitectura modular profesional
+- **Base de datos:** MySQL 5.7 con ORM TypeORM 0.3
+- **Inteligencia Artificial:**
+    - OpenAI (GPT-4o, embeddings `text-embedding-3-small`)
+    - Anthropic Claude 3.5 (modelo por defecto del agente Validator)
+- **Fuentes de verificación:**
+    - Brave Search API (por defecto)
+    - Google Programmable Search (fallback)
+    - NewsAPI (como último recurso)
+- **Throttle y control de límites:** Bottleneck 2.19 para evitar 429 en servicios externos
+- **Dev Experience:** ESLint, Prettier, Zod (validaciones seguras y parsing), Swagger
+- **Observabilidad:** Logger con Morgan y sistema de logs propio `AgentLog`
 
 ## 🤖 Impulsado por Agno
 
@@ -50,6 +57,6 @@ Veriqo es un sistema especializado en la verificación factual automatizada de a
   </a>
 </div>
 
-[Agno](https://github.com/agno-agi/agno) es una librería ligera y de alto rendimiento diseñada para construir agentes inteligentes con capacidades avanzadas de memoria, conocimiento, razonamiento y herramientas integradas. Gracias a Agno, Veriqo es capaz de gestionar agentes altamente desacoplados, inteligentes y escalables, asegurando una respuesta rápida y precisa para todas las verificaciones factuales realizadas.
+[Agno](https://github.com/agno-agi/agno) es una biblioteca ligera y potente para construir agentes inteligentes con capacidades de memoria, herramientas, rastreo, razonamiento contextual y modularidad extrema. Veriqo se apoya en Agno para coordinar y escalar de forma eficiente todos sus agentes internos de validación y verificación factual.
 
-> Para más información sobre cómo construir agentes avanzados con Agno, visita la [documentación oficial de Agno](https://docs.agno.com).
+> Descubre más sobre Agno en su [documentación oficial](https://docs.agno.com).

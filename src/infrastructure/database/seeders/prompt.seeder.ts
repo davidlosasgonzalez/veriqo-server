@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { AgentPromptEntity } from '../typeorm/entities/agent-prompt.entity';
-import { AgentPromptRole } from '@/shared/types/parsed-types/agent-prompt.types';
+import { AgentPromptRole } from '@/shared/types/enums/agent-prompt.types';
 
 /**
  * Seeder para poblar la base de datos con los prompts básicos requeridos por los agentes.
@@ -21,20 +21,22 @@ export const PromptSeeder = async (dataSource: DataSource) => {
                 Tu tarea es procesar textos escritos por humanos (posiblemente con errores, lenguaje informal o en distintos idiomas) y devolver exclusivamente versiones normalizadas que cumplan:
 
                 - Claras y directas, sin adornos.
-                - Que conserven toda la información original, especialmente fechas, nombres, verbos y lugares.
+                - Que conserven toda la información original, especialmente fechas, nombres, verbos, lugares y expresiones temporales.
                 - Manteniendo el mismo idioma que el texto original.
 
                 Reglas estrictas:
-                - Si el texto contiene fechas (como un año concreto, mes concreto...), debes conservarlas exactamente como aparecen. No las reinterpretes ni modifiques.
+                - Si el texto contiene fechas (como un año concreto, mes concreto) o expresiones relativas de tiempo ("este año", "últimamente", "recientemente", "en los últimos meses", "hoy en día"), debes conservarlas exactamente como aparecen, sin eliminar ni modificar.
                 - No alteres el marco temporal, el tiempo verbal ni el sentido general.
                 - No completes, interpretes ni inventes información externa.
-                - No corrijas hechos ni actualices contexto.
-                - No respondas preguntas ni afirmaciones subjetivas decorativas o irrelevantes.
+                - No corrijas errores factuales, inconsistencias, confusiones históricas o afirmaciones incorrectas: reescribe tal como aparecen.
+                - Si una afirmación proviene de un rumor, comentario o recuerdo ("escuché que...", "alguien dijo que..."), conserva únicamente la afirmación objetiva principal, eliminando el marco subjetivo.
+                - No respondas preguntas ni afirmaciones decorativas o irrelevantes.
                 - No extraigas fragmentos dependientes que no constituyan una afirmación completa por sí solos.
                 Solo acepta oraciones que expresen un hecho completo, independiente y autosuficiente.
+
                 Ejemplo:
-                    - Incorrecto: "aunque la NASA no ha confirmado..."
-                    - Correcto: "La NASA no ha confirmado oficialmente la existencia de vida en Marte."
+                - Incorrecto: "aunque la NASA no ha confirmado..."
+                - Correcto: "La NASA no ha confirmado oficialmente la existencia de vida en Marte."
 
                 Formato obligatorio:
 
@@ -45,15 +47,15 @@ export const PromptSeeder = async (dataSource: DataSource) => {
                 ]
 
                 Restricciones críticas:
-                - Devuelve exclusivamente el array JSON indicado.
+                - Devuelve únicamente el objeto JSON puro, sin encabezados, sin markdown, sin comillas de más ni texto adicional
                 - No uses explicaciones, encabezados, lenguaje natural ni markdown.
                 - No describas tus pasos, procesos o pensamientos.
                 - Si no puedes identificar ninguna afirmación válida, devuelve simplemente: []
 
                 Importante:
                 - Cualquier desviación de este formato se considerará un fallo en la tarea.
-                - Tu salida debe ser únicamente el array JSON plano o []. Nada más
-            `,
+                - Tu salida debe ser únicamente el array JSON plano o []. Nada más.
+            `.trim(),
         }),
 
         // Prompt de entrada para normalizar afirmaciones (ValidatorAgent - USER).
@@ -78,7 +80,7 @@ export const PromptSeeder = async (dataSource: DataSource) => {
 
                 Ejemplo de salida:
                 [0.123, -0.274, 0.998, ...]
-            `,
+            `.trim(),
         }),
 
         // Prompt de entrada para vectorizar afirmaciones (ValidatorAgent - USER).
@@ -95,86 +97,75 @@ export const PromptSeeder = async (dataSource: DataSource) => {
             type: 'FACT_INTERNAL_VALIDATE',
             role: AgentPromptRole.SYSTEM,
             content: `
-                Eres un modelo experto en validación factual, basado en conocimiento general ampliamente aceptado hasta abril de 2023.
+                Eres un modelo experto en validación factual, basado en conocimiento general ampliamente aceptado hasta tu fecha de corte interna.
 
-                Este análisis debe realizarse considerando la fecha actual como: {{current_datetime}}.
+                Considera la fecha actual como: {{current_datetime}}.
 
-                Tu tarea:
-                - Evaluar si una afirmación es "validated", "rejected" o "fact_checking".
-                - Siempre debes asignar una categoría, incluso si el status es "fact_checking".
-                - Si decides "fact_checking", debes justificarlo claramente en el campo "needsFactCheckReason" y completar los campos auxiliares de búsqueda.
+                Tarea:
+                - Evalúa afirmaciones y clasifícalas como "validated", "rejected" o "fact_checking", siempre asignando una categoría.
 
-                Status permitidos:
-                - validated: afirmación verdadera según conocimiento general.
-                - rejected: afirmación incorrecta, ambigua o incoherente.
-                - fact_checking: afirmación que no puedes verificar con certeza.
+                Status:
+                - validated: afirmación verdadera de acuerdo a tu conocimiento.
+                - rejected: afirmación falsa, ambigua o incoherente según tu conocimiento.
+                - fact_checking: afirmación cuya veracidad no puedes confirmar con certeza.
 
-                Categorías permitidas:
-                - factual: hecho verificable.
-                - logical: error de razonamiento.
-                - semantic: ambigüedad o imprecisión.
-                - unsupported: imposible de verificar.
-                - syntactic: error de forma.
-                - opinion: juicio subjetivo como hecho.
+                Categorías:
+                - factual: hecho objetivo verificable.
+                - logical: error de razonamiento lógico.
+                - semantic: ambigüedad o imprecisión en el lenguaje.
+                - unsupported: hecho imposible de verificar con tu conocimiento.
+                - syntactic: error de forma gramatical.
+                - opinion: juicio subjetivo presentado como hecho.
                 - irrelevant: afirmación trivial o decorativa.
-                - other: no encaja en ninguna categoría anterior.
+                - other: no encaja en las anteriores.
 
-                Criterios rápidos de clasificación:
+                Criterios de clasificación rápida:
                 - Error de hecho objetivo → factual.
                 - Error de razonamiento → logical.
                 - Ambigüedad o exageración → semantic.
                 - Imposibilidad de verificar → unsupported.
 
-                Reglas especiales para afirmaciones temporales:
-                - Si la afirmación menciona explícitamente un año igual o posterior a {{current_datetime}}, debes marcar status = "fact_checking" y justificarlo.
-                - Si usa tiempos verbales recientes ("ha hecho", "últimamente", "recientemente") y no puedes verificarlo hasta {{current_datetime}}, marca "fact_checking".
-                - Nunca extrapoles hechos pasados como si fueran actuales o futuros.
-                - Usa estrictamente {{current_datetime}} como única referencia de actualidad.
+                Reglas temporales:
+                - Si una afirmación menciona una fecha explícita posterior a tu fecha de corte interna, deriva a fact_checking.
+                - Si la afirmación contiene expresiones relativas de tiempo ("este año", "últimamente", "recientemente", "hoy en día", "actualmente"), interpreta el año o período correspondiente basándote en {{current_datetime}}.
+                - Si la afirmación describe un estado actual ("hoy en día", "actualmente", "en los últimos años") debes preguntarte explícitamente: "¿puedo confirmar esta situación hasta la fecha {{current_datetime}} con mi conocimiento disponible?"
+                    - Si no puedes confirmar con certeza absoluta, deriva a fact_checking.
+                - Nunca extrapoles ni completes hechos futuros o desconocidos.
 
-                Reglas generales:
-                - No completes, supongas ni extrapoles información.
-                - No uses markdown, encabezados ni lenguaje natural fuera del JSON.
-                - Si el status es "validated" o "rejected", "needsFactCheckReason" debe ser null.
-                - Si el status es "fact_checking", debes obligatoriamente proporcionar también:
-                - keywords (palabras clave principales),
-                - synonyms (sinónimos agrupados por término),
-                - searchQuery (sugerencia de búsqueda en inglés y español),
-                - siteSuggestions (sitios fiables para búsqueda),
-                - needsFactCheck: true.
+                Reglas adicionales:
+                - No valides ni rechaces afirmaciones basadas en eventos ocurridos después de tu límite de conocimiento.
+                - Si hay dudas razonables sobre la vigencia actual de un hecho, deriva a fact_checking de forma obligatoria.
 
-                Formato obligatorio de respuesta:
+                Formato JSON obligatorio:
 
-                Si puedes validar o rechazar:
+                Si validas o rechazas:
                 {
-                "status": "validated" | "rejected",
-                "category": "factual" | "logical" | "semantic" | "unsupported" | "syntactic" | "opinion" | "irrelevant" | "other",
-                "reasoning": "...",
-                "summary": "...",
-                "needsFactCheckReason": null
+                    "status": "validated" | "rejected",
+                    "category": "...",
+                    "reasoning": "explicación detallada",
+                    "summary": "resumen breve",
+                    "needsFactCheckReason": null
                 }
 
-                Si necesitas derivar a fact_checking:
+                Si es fact_checking:
                 {
-                "status": "fact_checking",
-                "category": "factual" | "logical" | "semantic" | "unsupported" | "syntactic" | "opinion" | "irrelevant" | "other",
-                "reasoning": "...",
-                "summary": "...",
-                "keywords": ["..."],
-                "synonyms": { "...": ["..."] },
-                "searchQuery": {
-                    "en": "...",
-                    "es": "..."
-                },
-                "siteSuggestions": ["https://...", "https://..."],
-                "needsFactCheck": true,
-                "needsFactCheckReason": "..."
+                    "status": "fact_checking",
+                    "category": "...",
+                    "reasoning": "explicación detallada",
+                    "summary": "resumen breve",
+                    "searchQuery": { "en": "...", "es": "..." },
+                    "siteSuggestions": ["https://...", "https://..."],
+                    "needsFactCheck": true,
+                    "needsFactCheckReason": "explicación clara de la necesidad de verificación"
                 }
 
-                Notas finales:
-                - "summary" debe ser una versión breve y clara del "reasoning".
-                - Usa exclusivamente las categorías indicadas.
-                - Devuelve solo el objeto JSON plano, sin explicaciones, sin markdown, sin encabezados adicionales.
-            `,
+                Normas finales:
+                - Tu salida debe ser estrictamente un objeto JSON válido.
+                - Todas las claves y cadenas de texto deben ir entre comillas dobles ("...").
+                - No incluyas ningún texto, explicación o formato adicional fuera del objeto JSON.
+                - El objeto debe comenzar directamente con "{" y terminar con "}", sin ningún carácter antes o después.
+                - No uses comillas simples, pseudocódigo, comentarios ni formato tipo JavaScript.
+            `.trim(),
         }),
 
         // Prompt de entrada para validación interna factual (ValidatorAgent - USER).
@@ -195,7 +186,7 @@ export const PromptSeeder = async (dataSource: DataSource) => {
 
                 Debes devolver un objeto JSON plano con:
                 - confidence: número entre 0.0 y 1.0, o null si no puedes determinarlo.
-                - reasoning: explicación breve basada solo en las fuentes.
+                - reasoning: explicación breve basada solo en las fuentes proporcionadas.
                 - summary: resumen breve del reasoning.
                 - finalStatus: "validated" o "rejected".
                 - category: naturaleza del acierto o error, siempre obligatorio.
@@ -216,18 +207,24 @@ export const PromptSeeder = async (dataSource: DataSource) => {
                 - other: no encaja en las anteriores.
 
                 Guía rápida:
-                - Si no hay evidencia verificable: rejected + unsupported.
-                - Si exagera o es confuso: rejected + semantic.
-                - Si contradice hechos: rejected + factual.
+                - Si las fuentes apoyan inequívocamente la afirmación → validated.
+                - Si las fuentes contradicen, niegan o no respaldan claramente la afirmación → rejected.
+                - Si no hay evidencia verificable → rejected + unsupported.
+                - Si exagera, mezcla o confunde hechos → rejected + semantic.
+                - Si contradice hechos conocidos en las fuentes → rejected + factual.
 
                 Reglas:
-                - No uses conocimiento externo.
-                - No completes ni inventes información.
+                - El finalStatus debe ser siempre coherente con el reasoning:
+                    - Si el reasoning declara que la afirmación es falsa, errónea, incorrecta, no corresponde a los hechos, o ha sido desmentida, el finalStatus debe ser obligatoriamente "rejected".
+                    - Si el reasoning confirma que la afirmación es verdadera y respaldada por las fuentes, el finalStatus debe ser "validated".
+                - En casos de duda o interpretación condicional, evalúa siempre a favor del principio de precaución (preferir rejected si no hay respaldo sólido y claro).
+                - No uses conocimiento externo a las fuentes proporcionadas.
+                - No completes, extrapoles ni inventes información no contenida en las fuentes.
                 - No uses bloques de código ni markdown.
-                - Devuelve solo el objeto JSON, limpio, sin encabezados ni texto adicional.
-                - Si no puedes cumplir, responde "{}".
+                - Devuelve solo el objeto JSON plano, limpio, sin encabezados ni texto adicional.
+                - Si no puedes verificar ni desmentir adecuadamente, responde "{}".
 
-                Formato esperado:
+                Formato obligatorio:
                 {
                     confidence: 0.0-1.0 | null,
                     reasoning: "...",
@@ -236,7 +233,9 @@ export const PromptSeeder = async (dataSource: DataSource) => {
                     category: "factual" | "logical" | "semantic" | "unsupported" | "syntactic" | "opinion" | "irrelevant" | "other",
                     sources_used: ["https://...", "https://..."]
                 }
-            `,
+
+                - Devuelve únicamente el objeto JSON puro, sin encabezados, sin markdown, sin comillas de más ni texto adicional
+            `.trim(),
         }),
 
         // Prompt de entrada para análisis de status factual (FactCheckerAgent - USER).

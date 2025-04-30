@@ -11,7 +11,7 @@ import { CreateFactFromValidatedFindingParams } from '@/shared/interfaces/agent-
  * @param category - Categoría semántica del hecho. Puede ser null si no se asigna.
  * @param reasoning - Razonamiento completo generado por el modelo, explicando por qué se asignó el estado.
  * @param summary - Resumen opcional del razonamiento. Si no se proporciona, se asigna un string vacío.
- * @returns El objeto `AgentFact` creado, con su razonamiento asignado.
+ * @returns El objeto `AgentFact` creado, sin razonamiento asignado directamente (debe guardarse por separado).
  */
 export function createFactFromValidatedFinding(
     createdAt: Date,
@@ -28,15 +28,6 @@ export function createFactFromValidatedFinding(
     fact.category = category;
     fact.createdAt = createdAt;
     fact.updatedAt = createdAt;
-
-    const reasoningEntity = new AgentReasoning();
-
-    reasoningEntity.content = reasoning;
-    reasoningEntity.summary = summary ?? '';
-    reasoningEntity.createdAt = createdAt;
-    reasoningEntity.updatedAt = createdAt;
-
-    fact.currentReasoning = reasoningEntity;
 
     return fact;
 }

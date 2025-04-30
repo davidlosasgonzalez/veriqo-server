@@ -5,14 +5,13 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { VerifyClaimDto } from './dto/verify-claim.dto';
+import { AgentFactDto } from '../fact-checker/dto/agent-fact.dto';
 import { IAgentFactRepository } from '@/application/interfaces/agent-fact-repository.interface';
 import { IAgentFindingRepository } from '@/application/interfaces/agent-finding-repository.interface';
 import { ValidatorOrchestratorService } from '@/application/services/validator/validator-orchestratos.service';
 import { AgentFactRepositoryToken } from '@/application/tokens/agent-fact-repository.token';
 import { AgentFindingRepositoryToken } from '@/application/tokens/agent-finding-repository.token';
 import { UpdateAgentFactAfterVerificationUseCaseWrite } from '@/application/use-cases/write/update-agent-fact-after-verification.use-case.write';
-import { VerifyFactUseCaseWrite } from '@/application/use-cases/write/verify-fact.use-case.write';
-import { AgentFact } from '@/domain/entities/agent-fact.entity';
 import { AgentFinding } from '@/domain/entities/agent-finding.entity';
 import { EventBusService } from '@/shared/event-bus/event-bus.service';
 import { AgentEventType } from '@/shared/types/enums/agent-event-type.enum';
@@ -24,7 +23,6 @@ import { FactualVerificationResultPayload } from '@/shared/types/payloads/factua
 @Injectable()
 export class ValidatorAgentService implements OnModuleInit {
     constructor(
-        private readonly verifyFactUseCaseWrite: VerifyFactUseCaseWrite,
         private readonly updateAgentFactAfterVerificationUseCaseWrite: UpdateAgentFactAfterVerificationUseCaseWrite,
         private readonly eventBusService: EventBusService,
         private readonly verifyClaim: ValidatorOrchestratorService,
@@ -55,10 +53,6 @@ export class ValidatorAgentService implements OnModuleInit {
                             factId: payload.factId,
                             newStatus: payload.newStatus,
                             newCategory: payload.newCategory,
-                            newReasoning: {
-                                summary: payload.reasoning.summary,
-                                content: payload.reasoning.content,
-                            },
                         },
                     );
                 } catch (error) {
@@ -114,7 +108,7 @@ export class ValidatorAgentService implements OnModuleInit {
      * @param id - ID del hecho.
      * @returns `AgentFact` encontrado o lanza error si no se encuentra.
      */
-    async getFactById(id: string): Promise<AgentFact> {
+    async getFactById(id: string): Promise<AgentFactDto> {
         const fact = await this.agentFactRepository.findById(id);
 
         if (!fact) {
@@ -123,7 +117,7 @@ export class ValidatorAgentService implements OnModuleInit {
             );
         }
 
-        return fact;
+        return (this.agentFactRepository as any).mapToDto(fact);
     }
 
     /**

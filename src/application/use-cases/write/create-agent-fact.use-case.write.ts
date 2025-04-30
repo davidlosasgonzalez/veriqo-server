@@ -5,7 +5,7 @@ import { AgentFact } from '@/domain/entities/agent-fact.entity';
 import {
     AgentFactStatus,
     AgentFactCategory,
-} from '@/shared/types/agent-fact.types';
+} from '@/shared/types/enums/agent-fact.types';
 import { NormalizedClaim } from '@/shared/types/parsed-types/normalized-claim.type';
 
 /**

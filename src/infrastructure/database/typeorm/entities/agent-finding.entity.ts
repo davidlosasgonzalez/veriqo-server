@@ -60,10 +60,8 @@ export class AgentFindingEntity {
      */
     @OneToOne(
         () => AgentFindingSearchContextEntity,
-        (search) => search.finding,
-        { nullable: true },
+        (context) => context.finding,
     )
-    @JoinColumn({ name: 'search_context_id' })
     searchContext?: AgentFindingSearchContextEntity | null;
 
     /**

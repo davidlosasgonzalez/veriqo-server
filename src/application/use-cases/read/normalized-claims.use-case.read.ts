@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { env } from '@/config/env/env.config';
+import { AgentPromptService } from '@/shared/llm/services/agent-prompt.service';
 import { LlmRouterService } from '@/shared/llm/services/llm-router.service';
-import { PromptService } from '@/shared/llm/services/prompt.service';
-import { LLMProvider } from '@/shared/types/enums/llm-provider.enum';
-import { AgentPromptRole } from '@/shared/types/parsed-types/agent-prompt.types';
+import { AgentPromptRole } from '@/shared/types/enums/agent-prompt.types';
+import { LlmModel } from '@/shared/types/enums/llm-model.types';
+import { LlmProvider } from '@/shared/types/enums/llm-provider.enum';
 import { NormalizedClaim } from '@/shared/types/parsed-types/normalized-claim.type';
 import { buildClaudePrompt } from '@/shared/utils/llm/build-claude-prompt';
+import { parseLlmResponse } from '@/shared/utils/text/parse-llm-response';
 
 /**
  * Caso de uso READ para normalizar una afirmación libre en múltiples claims verificables.
@@ -15,7 +18,7 @@ export class NormalizeClaimsUseCaseRead {
 
     constructor(
         private readonly llmRouterService: LlmRouterService,
-        private readonly promptService: PromptService,
+        private readonly promptService: AgentPromptService,
     ) {}
 
     /**
@@ -48,11 +51,12 @@ export class NormalizeClaimsUseCaseRead {
         );
 
         try {
-            const raw = await this.llmRouterService.chat(
+            const { rawOutput } = await this.llmRouterService.chat(
                 messages,
-                LLMProvider.CLAUDE,
+                env.LLM_VALIDATOR_PROVIDER as LlmProvider,
+                env.LLM_VALIDATOR_MODEL as LlmModel,
             );
-            const claims: NormalizedClaim[] = JSON.parse(raw);
+            const claims: NormalizedClaim[] = JSON.parse(rawOutput);
 
             if (!Array.isArray(claims) || claims.length === 0) {
                 throw new Error('El modelo no devolvió afirmaciones válidas.');

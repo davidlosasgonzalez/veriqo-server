@@ -8,6 +8,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.0-beta] – 2025‑04‑30
+
+> Final modularization of the core system. Unified `CoreController`, added technical metrics and dynamic search fallbacks.
+
+### Added
+
+- New `CoreController` with modular endpoints:
+    - `GET /core/logs`: view all LLM execution logs.
+    - `GET /core/prompts`: list all prompt templates in the system.
+    - `GET /core/stats`: return factual verification metrics.
+    - `GET /core/metrics`: return technical server-level metrics.
+- `AgentLogEntity` and `AgentPromptEntity` reintroduced with clean structure and full traceability.
+- Search fallback logic:
+    - If Brave Search returns `429 Too Many Requests`, fallback to Google.
+    - If Google fails, fallback to NewsAPI.
+- Integrated [Bottleneck](https://www.npmjs.com/package/bottleneck) for throttling and respecting external API rate limits.
+- Entity relations enhanced and normalized with:
+    - `@OneToMany`, `@OneToOne`, `@ManyToOne` using explicit `@JoinColumn`.
+    - Full cascade and referential integrity across reasoning, verification, fact and finding.
+- Swagger and DTOs updated to reflect new relations, with `@Expose/@Exclude` and strict typing.
+- `AgentFindingRepository.findById()` now loads nested `verifications.reasoning` for consistent DTO hydration.
+
+### Changed
+
+- Reimplemented `waitForFact = true` in `POST /validators/analyze`. The request now blocks **until the factual verification completes**, with **no artificial timeout**.
+- `AgentVerificationRepository.save()` now ensures all reasoning and `factId` relations are fully loaded before returning.
+- `mapToDto()` functions for `AgentFact` and `AgentVerification` now correctly hydrate nested reasoning DTOs.
+- All `GET /validators/facts/:id` and `GET /validators/findings/:id` endpoints now return enriched DTOs with reasoning if available.
+
+### Fixed
+
+- Resolved inconsistency where `reasoning` was `null` in responses, even though it existed in database.
+- Fixed `factId` not being assigned in `AgentVerification` entities.
+
+### Documentation
+
+- Markdown documentation updated to reflect all architectural and functional changes after agent modularization.
+- Changelog extended with version `0.7.0-beta` covering all recent enhancements.
+
 ## [0.6.0-beta] – 2025‑04‑28
 
 > Refactored the FactCheckerAgent with clean hexagonal architecture, structured factual verification, and improved traceability.
@@ -125,10 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `sourcesRetrieved` and `sourcesUsed` saved in `AgentVerification`.
 - Automatic inclusion of `reasoning`, `sources_used` and `sources_retrieved` in public API.
 
----
-
-## Links
-
+[0.7.0-beta]: https://github.com/davidlosasgonzalez/veriqo-server/releases/tag/v0.7.0-beta
 [0.6.0-beta]: https://github.com/davidlosasgonzalez/veriqo-server/releases/tag/v0.6.0-beta
 [0.5.0-beta]: https://github.com/davidlosasgonzalez/veriqo-server/releases/tag/v0.5.0-beta
 [1.0.0]: https://github.com/davidlosasgonzalez/veriqo-server/releases/tag/v1.0.0

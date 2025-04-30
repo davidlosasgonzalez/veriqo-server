@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
+import { AgentFactDto } from '@/agents/fact-checker/dto/agent-fact.dto';
+import { AgentReasoningDto } from '@/agents/validator/dto/agent-reasoning.dto';
+import { AgentVerificationDto } from '@/agents/validator/dto/agent-verification.dto';
 import { IAgentFactRepository } from '@/application/interfaces/agent-fact-repository.interface';
 import { AgentFact } from '@/domain/entities/agent-fact.entity';
+import { AgentReasoning } from '@/domain/entities/agent-reasoning.entity';
 import { AgentVerification } from '@/domain/entities/agent-verification.entity';
 import { AgentFactEntity } from '@/infrastructure/database/typeorm/entities/agent-fact.entity';
 import { AgentReasoningEntity } from '@/infrastructure/database/typeorm/entities/agent-reasoning.entity';
@@ -10,8 +15,7 @@ import { AgentVerificationEntity } from '@/infrastructure/database/typeorm/entit
 import {
     AgentFactCategory,
     AgentFactStatus,
-} from '@/shared/types/agent-fact.types';
-import { SearchEngineUsed } from '@/shared/types/enums/search-engine-used.enum';
+} from '@/shared/types/enums/agent-fact.types';
 
 /**
  * Repositorio para la gestión de AgentFact.
@@ -25,6 +29,8 @@ export class AgentFactRepository implements IAgentFactRepository {
 
     /**
      * Guarda un AgentFact en base de datos.
+     * @param fact - Entidad de dominio a persistir.
+     * @returns Fact guardado como dominio.
      */
     async save(fact: AgentFact): Promise<AgentFact> {
         const entity = this.toOrmEntity(fact);
@@ -34,19 +40,42 @@ export class AgentFactRepository implements IAgentFactRepository {
     }
 
     /**
-     * Busca un AgentFact por su ID.
+     * Busca un AgentFact por ID.
+     * @param id - UUID del fact.
+     * @returns Entidad de dominio o null si no existe.
      */
     async findById(id: string): Promise<AgentFact | null> {
         const found = await this.agentFactRepo.findOne({
             where: { id },
-            relations: ['verifications', 'currentReasoning'],
+            relations: [
+                'verifications',
+                'verifications.reasoning',
+                'reasonings',
+            ],
         });
 
         return found ? this.toDomainEntity(found) : null;
     }
 
     /**
-     * Actualiza el estado, categoría y razonamiento de un AgentFact tras verificación.
+     * Recupera todos los AgentFact registrados.
+     * @returns Lista de entidades de dominio.
+     */
+    async findAll(): Promise<AgentFact[]> {
+        const all = await this.agentFactRepo.find({
+            relations: [
+                'verifications',
+                'verifications.reasoning',
+                'reasonings',
+            ],
+        });
+
+        return all.map((entity) => this.toDomainEntity(entity));
+    }
+
+    /**
+     * Actualiza el estado y añade un razonamiento directamente vinculado al fact.
+     * @param params - Datos de actualización del fact.
      */
     async updateAfterVerification(params: {
         factId: string;
@@ -56,30 +85,59 @@ export class AgentFactRepository implements IAgentFactRepository {
     }): Promise<void> {
         const fact = await this.agentFactRepo.findOne({
             where: { id: params.factId },
-            relations: ['currentReasoning'],
+            relations: ['reasonings'],
         });
 
         if (!fact) {
             throw new Error(`AgentFact con id ${params.factId} no encontrado`);
         }
 
-        const newReasoningEntity = new AgentReasoningEntity();
+        const reasoning = new AgentReasoningEntity();
 
-        newReasoningEntity.summary = params.newReasoning.summary;
-        newReasoningEntity.content = params.newReasoning.content;
-        newReasoningEntity.createdAt = new Date();
-        newReasoningEntity.updatedAt = new Date();
+        reasoning.summary = params.newReasoning.summary;
+        reasoning.content = params.newReasoning.content;
+        reasoning.createdAt = new Date();
+        reasoning.updatedAt = new Date();
+        reasoning.fact = fact;
 
         fact.status = params.newStatus as AgentFactStatus;
         fact.category = params.newCategory as AgentFactCategory;
-        fact.currentReasoning = newReasoningEntity;
+        fact.updatedAt = new Date();
+
+        await this.agentFactRepo.save(fact);
+        await this.agentFactRepo.manager.save(reasoning);
+    }
+
+    /**
+     * Actualiza únicamente el estado factual y la categoría semántica de un AgentFact.
+     *
+     * Este método se utiliza cuando la verificación factual ya ha generado su propio razonamiento
+     * (por ejemplo, desde el agente FactChecker), y solo se requiere actualizar los metadatos del fact.
+     *
+     * @param params - Objeto con el ID del fact a actualizar, el nuevo estado y la nueva categoría.
+     * @throws Error si el fact no existe en la base de datos.
+     */
+    async updateStatusAndCategory(params: {
+        factId: string;
+        newStatus: AgentFactStatus;
+        newCategory: AgentFactCategory;
+    }): Promise<void> {
+        const fact = await this.agentFactRepo.findOneBy({ id: params.factId });
+
+        if (!fact)
+            throw new Error(`AgentFact con id ${params.factId} no encontrado`);
+
+        fact.status = params.newStatus;
+        fact.category = params.newCategory;
         fact.updatedAt = new Date();
 
         await this.agentFactRepo.save(fact);
     }
 
     /**
-     * Convierte una entidad ORM a dominio.
+     * Convierte una entidad ORM a entidad de dominio.
+     * @param entity - Entidad ORM cargada de base de datos.
+     * @returns Entidad de dominio.
      */
     private toDomainEntity(entity: AgentFactEntity): AgentFact {
         const fact = new AgentFact();
@@ -89,23 +147,23 @@ export class AgentFactRepository implements IAgentFactRepository {
         fact.category = entity.category;
         fact.createdAt = entity.createdAt;
         fact.updatedAt = entity.updatedAt;
-        fact.currentReasoning = entity.currentReasoning
-            ? {
-                  id: entity.currentReasoning.id,
-                  content: entity.currentReasoning.content,
-                  summary: entity.currentReasoning.summary,
-                  createdAt: entity.currentReasoning.createdAt,
-                  updatedAt: entity.currentReasoning.updatedAt,
-              }
-            : null;
+
         fact.verifications =
-            entity.verifications?.map(this.toDomainVerification) ?? [];
+            entity.verifications?.map((verification) =>
+                this.toDomainVerification(verification),
+            ) ?? [];
+        fact.reasonings =
+            entity.reasonings?.map((reasoning) =>
+                this.toDomainReasoning(reasoning),
+            ) ?? [];
 
         return fact;
     }
 
     /**
-     * Convierte una verificación ORM a dominio.
+     * Convierte una entidad ORM de verificación a dominio.
+     * @param entity - Entidad ORM de verificación.
+     * @returns Entidad de dominio.
      */
     private toDomainVerification(
         entity: AgentVerificationEntity,
@@ -113,28 +171,44 @@ export class AgentFactRepository implements IAgentFactRepository {
         const verification = new AgentVerification();
 
         verification.id = entity.id;
-        verification.engineUsed = entity.engineUsed as SearchEngineUsed;
-        verification.confidence = entity.confidence;
-        verification.sourcesUsed = entity.sourcesUsed;
-        verification.sourcesRetrieved = entity.sourcesRetrieved;
-        verification.isOutdated = entity.isOutdated;
+        verification.engineUsed = entity.engineUsed ?? null;
+        verification.confidence = entity.confidence ?? null;
+        verification.sourcesUsed = entity.sourcesUsed ?? [];
+        verification.sourcesRetrieved = entity.sourcesRetrieved ?? [];
+        verification.isOutdated = entity.isOutdated ?? false;
         verification.createdAt = entity.createdAt;
         verification.updatedAt = entity.updatedAt;
+
         verification.reasoning = entity.reasoning
-            ? {
-                  id: entity.reasoning.id,
-                  content: entity.reasoning.content,
-                  summary: entity.reasoning.summary,
-                  createdAt: entity.reasoning.createdAt,
-                  updatedAt: entity.reasoning.updatedAt,
-              }
+            ? this.toDomainReasoning(entity.reasoning)
             : null;
 
         return verification;
     }
 
     /**
-     * Convierte una entidad de dominio a ORM.
+     * Convierte una entidad ORM de razonamiento a dominio.
+     * @param entity - Entidad ORM de razonamiento.
+     * @returns Entidad de dominio.
+     */
+    private toDomainReasoning(entity: AgentReasoningEntity): AgentReasoning {
+        const reasoning = new AgentReasoning();
+
+        reasoning.id = entity.id;
+        reasoning.summary = entity.summary;
+        reasoning.content = entity.content;
+        reasoning.verificationId = entity.verification?.id ?? null;
+        reasoning.factId = entity.fact?.id ?? null;
+        reasoning.createdAt = entity.createdAt;
+        reasoning.updatedAt = entity.updatedAt;
+
+        return reasoning;
+    }
+
+    /**
+     * Convierte una entidad de dominio a entidad ORM.
+     * @param domain - Entidad de dominio.
+     * @returns Entidad ORM lista para persistir.
      */
     private toOrmEntity(domain: AgentFact): AgentFactEntity {
         const entity = new AgentFactEntity();
@@ -144,42 +218,38 @@ export class AgentFactRepository implements IAgentFactRepository {
         entity.category = domain.category;
         entity.createdAt = domain.createdAt;
         entity.updatedAt = domain.updatedAt;
-        entity.currentReasoning = domain.currentReasoning
-            ? Object.assign(new AgentReasoningEntity(), {
-                  content: domain.currentReasoning.content,
-                  summary: domain.currentReasoning.summary,
-              })
-            : null;
-        entity.verifications = domain.verifications
-            ? domain.verifications.map(this.toOrmVerification)
-            : [];
 
         return entity;
     }
 
     /**
-     * Convierte una verificación de dominio a ORM.
+     * Mapea un AgentFact a su DTO de salida, incluyendo razonamiento o verificación según el caso.
+     * @param fact - Entidad de dominio AgentFact.
+     * @returns DTO listo para respuesta pública.
      */
-    private toOrmVerification(
-        domain: AgentVerification,
-    ): AgentVerificationEntity {
-        const entity = new AgentVerificationEntity();
+    mapToDto(fact: AgentFact): AgentFactDto {
+        const dto = plainToInstance(AgentFactDto, fact, {
+            excludeExtraneousValues: true,
+        });
 
-        entity.id = domain.id;
-        entity.engineUsed = domain.engineUsed as SearchEngineUsed;
-        entity.confidence = domain.confidence ?? null;
-        entity.sourcesUsed = domain.sourcesUsed;
-        entity.sourcesRetrieved = domain.sourcesRetrieved;
-        entity.createdAt = domain.createdAt;
-        entity.updatedAt = domain.updatedAt;
-        entity.isOutdated = domain.isOutdated ?? false;
-        entity.reasoning = domain.reasoning
-            ? Object.assign(new AgentReasoningEntity(), {
-                  content: domain.reasoning.content,
-                  summary: domain.reasoning.summary,
-              })
-            : null;
+        if (fact.verifications?.length) {
+            dto.verification = plainToInstance(
+                AgentVerificationDto,
+                fact.verifications[0],
+                {
+                    excludeExtraneousValues: true,
+                },
+            );
+        } else if (fact.reasonings?.length) {
+            dto.reasoning = plainToInstance(
+                AgentReasoningDto,
+                fact.reasonings[0],
+                {
+                    excludeExtraneousValues: true,
+                },
+            );
+        }
 
-        return entity;
+        return dto;
     }
 }

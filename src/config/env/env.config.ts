@@ -1,5 +1,8 @@
 import { config } from 'dotenv';
 import { envSchema } from './env.validation';
+import { LlmEmbeddingProvider } from '@/shared/types/enums/llm-embedding-provider';
+import { LlmModel } from '@/shared/types/enums/llm-model.types';
+import { LlmProvider } from '@/shared/types/enums/llm-provider.enum';
 
 config();
 
@@ -46,12 +49,12 @@ export const env: {
     NODE_ENV: string;
 
     // Modelos LLM y embeddings.
-    VALIDATOR_MODEL: string;
+    LLM_VALIDATOR_PROVIDER: string;
+    LLM_FACTCHECKER_PROVIDER: string;
+    LLM_VALIDATOR_MODEL: string;
+    LLM_EMBEDDING_MODEL: string;
+    LLM_FACTCHECKER_MODEL: string;
     VALIDATOR_MAX_INPUT_CHARS: number;
-    FACTCHECKER_MODEL: string;
-    FACT_CHECK_CACHE_DAYS: number;
-    EMBEDDING_MODEL: string;
-    EMBEDDING_MODEL_PROVIDER: string;
     EMBEDDING_SIMILARITY_THRESHOLD: number;
 } = {
     // Configuración de la base de datos.
@@ -75,12 +78,14 @@ export const env: {
     NODE_ENV: parsedEnv.data.NODE_ENV ?? 'development',
 
     // Modelos LLM y embeddings.
-    VALIDATOR_MODEL: parsedEnv.data.VALIDATOR_MODEL,
+    LLM_VALIDATOR_PROVIDER: parsedEnv.data
+        .LLM_VALIDATOR_PROVIDER as LlmProvider,
+    LLM_FACTCHECKER_PROVIDER: parsedEnv.data
+        .LLM_FACTCHECKER_PROVIDER as LlmProvider,
+    LLM_VALIDATOR_MODEL: parsedEnv.data.LLM_VALIDATOR_MODEL as LlmModel,
+    LLM_EMBEDDING_MODEL: parsedEnv.data.LLM_EMBEDDING_MODEL as LlmModel,
+    LLM_FACTCHECKER_MODEL: parsedEnv.data.LLM_FACTCHECKER_MODEL as LlmModel,
     VALIDATOR_MAX_INPUT_CHARS: parsedEnv.data.VALIDATOR_MAX_INPUT_CHARS,
-    FACTCHECKER_MODEL: parsedEnv.data.FACTCHECKER_MODEL,
-    FACT_CHECK_CACHE_DAYS: parsedEnv.data.FACT_CHECK_CACHE_DAYS ?? 7,
-    EMBEDDING_MODEL: parsedEnv.data.EMBEDDING_MODEL,
-    EMBEDDING_MODEL_PROVIDER: parsedEnv.data.EMBEDDING_MODEL_PROVIDER,
     EMBEDDING_SIMILARITY_THRESHOLD:
         parsedEnv.data.EMBEDDING_SIMILARITY_THRESHOLD ?? 0.8,
 };

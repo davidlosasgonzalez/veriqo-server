@@ -2,7 +2,7 @@ import { AgentFact } from '@/domain/entities/agent-fact.entity';
 import {
     AgentFactCategory,
     AgentFactStatus,
-} from '@/shared/types/agent-fact.types';
+} from '@/shared/types/enums/agent-fact.types';
 
 /**
  * Contrato de acceso a la persistencia de AgentFact.
@@ -14,6 +14,9 @@ export interface IAgentFactRepository {
     /** Busca un AgentFact por ID. */
     findById(id: string): Promise<AgentFact | null>;
 
+    /** Recupera todos los AgentFact almacenados. */
+    findAll(): Promise<AgentFact[]>;
+
     /** Actualiza estado, categoría y razonamiento de un AgentFact tras verificación. */
     updateAfterVerification(params: {
         factId: string;
@@ -23,5 +26,12 @@ export interface IAgentFactRepository {
             summary: string;
             content: string;
         };
+    }): Promise<void>;
+
+    /** Actualiza solo estado y categoría de un AgentFact (sin razonamiento). */
+    updateStatusAndCategory(params: {
+        factId: string;
+        newStatus: AgentFactStatus;
+        newCategory: AgentFactCategory;
     }): Promise<void>;
 }

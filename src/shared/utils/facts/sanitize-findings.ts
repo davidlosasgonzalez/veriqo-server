@@ -1,7 +1,7 @@
 import { AgentFinding } from '@/domain/entities/agent-finding.entity';
 
 /**
- * Limpia los facts vacíos de las verifications dentro de uno o varios findings.
+ * Limpia los factId vacíos de las verifications dentro de uno o varios findings.
  *
  * @param findings - Finding o array de findings a limpiar.
  */
@@ -16,10 +16,8 @@ export function sanitizeFindings(
         const verifications = finding.fact?.verifications ?? [];
 
         for (const verification of verifications) {
-            const fact = verification.fact;
-
-            if (!fact?.id) {
-                delete verification.fact;
+            if (!verification.factId) {
+                delete (verification as any).factId;
             }
         }
     }

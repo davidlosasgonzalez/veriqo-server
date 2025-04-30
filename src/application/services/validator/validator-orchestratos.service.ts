@@ -14,15 +14,17 @@ import { AgentFinding } from '@/domain/entities/agent-finding.entity';
 import { AgentReasoning } from '@/domain/entities/agent-reasoning.entity';
 import { EventBusService } from '@/shared/event-bus/event-bus.service';
 import { IEmbeddingService } from '@/shared/interfaces/embedding-service.interface';
+import { AgentPromptService } from '@/shared/llm/services/agent-prompt.service';
 import { LlmRouterService } from '@/shared/llm/services/llm-router.service';
-import { PromptService } from '@/shared/llm/services/prompt.service';
-import { AgentFactStatus } from '@/shared/types/agent-fact.types';
 import { AgentEventType } from '@/shared/types/enums/agent-event-type.enum';
-import { LLMProvider } from '@/shared/types/enums/llm-provider.enum';
-import { AgentPromptRole } from '@/shared/types/parsed-types/agent-prompt.types';
+import { AgentFactStatus } from '@/shared/types/enums/agent-fact.types';
+import { AgentPromptRole } from '@/shared/types/enums/agent-prompt.types';
+import { LlmModel } from '@/shared/types/enums/llm-model.types';
+import { LlmProvider } from '@/shared/types/enums/llm-provider.enum';
 import { NormalizedClaim } from '@/shared/types/parsed-types/normalized-claim.type';
 import { ValidatedClaimResultPayload } from '@/shared/types/payloads/validated-claim-result.payload';
 import { buildClaudePrompt } from '@/shared/utils/llm/build-claude-prompt';
+import { parseLlmResponse } from '@/shared/utils/text/parse-llm-response';
 
 /**
  * Caso de uso WRITE para orquestar el flujo completo de verificación de un claim textual.
@@ -43,7 +45,7 @@ export class ValidatorOrchestratorService {
         private readonly createSearchContext: CreateAgentFindingSearchContextUseCaseWrite,
         private readonly llmRouterService: LlmRouterService,
         private readonly eventBusService: EventBusService,
-        private readonly promptService: PromptService,
+        private readonly promptService: AgentPromptService,
     ) {}
 
     /**
@@ -119,8 +121,6 @@ export class ValidatorOrchestratorService {
                         factId: fact.id,
                         findingId: finding.id,
                         claim: claim,
-                        keywords: validation.keywords ?? [],
-                        synonyms: validation.synonyms ?? null,
                         searchQuery: validation.searchQuery ?? {},
                         siteSuggestions: validation.siteSuggestions ?? null,
                     },
@@ -128,21 +128,18 @@ export class ValidatorOrchestratorService {
 
                 await this.createSearchContext.execute({
                     findingId: finding.id,
-                    keywords: validation.keywords ?? [],
-                    synonyms: validation.synonyms ?? null,
                     searchQuery: validation.searchQuery ?? {},
                     siteSuggestions: validation.siteSuggestions ?? null,
-                    searchResults: validation.searchResults ?? null,
                 });
             } else {
                 const reasoning: AgentReasoning =
                     await this.createReasoning.execute({
                         summary: validation.summary ?? '',
                         content: validation.reasoning ?? '',
+                        factId: fact.id,
                     });
 
-                fact.currentReasoning = reasoning;
-
+                fact.reasonings = [reasoning];
                 await this.agentFactRepository.save(fact);
             }
 
@@ -184,7 +181,7 @@ export class ValidatorOrchestratorService {
         }
 
         const currentDatetime = new Date().toISOString();
-        const systemPromptContent = systemPrompt.content.replace(
+        const systemPromptContent = systemPrompt.content.replaceAll(
             '{{current_datetime}}',
             currentDatetime,
         );
@@ -193,13 +190,14 @@ export class ValidatorOrchestratorService {
             systemPromptContent,
             userPromptContent,
         );
-        const raw = await this.llmRouterService.chat(
-            messages,
-            LLMProvider.CLAUDE,
-        );
 
         try {
-            const parsed = JSON.parse(raw);
+            const { rawOutput } = await this.llmRouterService.chat(
+                messages,
+                env.LLM_VALIDATOR_PROVIDER as LlmProvider,
+                env.LLM_VALIDATOR_MODEL as LlmModel,
+            );
+            const parsed = parseLlmResponse(rawOutput);
 
             if (!parsed.status || typeof parsed.status !== 'string') {
                 throw new Error('Respuesta inválida del modelo LLM.');
@@ -224,8 +222,6 @@ export class ValidatorOrchestratorService {
                 summary: parsed.summary,
                 reasoning: parsed.reasoning,
                 needsFactCheckReason: parsed.needsFactCheckReason,
-                keywords: parsed.keywords,
-                synonyms: parsed.synonyms,
                 searchQuery: parsed.searchQuery,
                 siteSuggestions: parsed.siteSuggestions,
             };

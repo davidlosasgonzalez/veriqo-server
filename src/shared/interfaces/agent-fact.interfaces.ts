@@ -1,4 +1,7 @@
-import { AgentFactCategory, AgentFactStatus } from '../types/agent-fact.types';
+import {
+    AgentFactCategory,
+    AgentFactStatus,
+} from '../types/enums/agent-fact.types';
 
 /**
  * Contrato de creación de AgentFact a partir de un AgentFinding validado.

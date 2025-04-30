@@ -1,7 +1,7 @@
 import {
     AgentFactCategory,
     AgentFactStatus,
-} from '@/shared/types/agent-fact.types';
+} from '@/shared/types/enums/agent-fact.types';
 
 /**
  * Payload que representa el resultado de validar internamente una afirmación textual.
@@ -14,8 +14,6 @@ export interface ValidatedClaimResultPayload {
     reasoning?: string;
     needsFactCheckReason?: string | null;
     summary?: string;
-    keywords?: string[];
-    synonyms?: Record<string, string[]>;
     searchQuery?: Record<string, string>;
     siteSuggestions?: string[];
     searchResults?: Record<string, any>[];

@@ -21,18 +21,6 @@ export class AgentFindingSearchContextEntity {
     id: string;
 
     /**
-     * Palabras clave extraídas del claim para mejorar la búsqueda.
-     */
-    @Column({ type: 'simple-array' })
-    keywords: string[];
-
-    /**
-     * Sinónimos asociados a las palabras clave.
-     */
-    @Column({ type: 'simple-json', nullable: true })
-    synonyms?: Record<string, string[]> | null;
-
-    /**
      * Consulta de búsqueda estructurada generada para búsqueda externa.
      */
     @Column({ name: 'search_query', type: 'json' })
@@ -43,12 +31,6 @@ export class AgentFindingSearchContextEntity {
      */
     @Column({ name: 'site_suggestions', type: 'simple-array', nullable: true })
     siteSuggestions?: string[] | null;
-
-    /**
-     * Resultados de búsqueda estructurados para apoyar la verificación factual.
-     */
-    @Column({ name: 'search_results', type: 'simple-json', nullable: true })
-    searchResults?: Record<string, any>[] | null;
 
     /**
      * Hallazgo asociado a este contexto de búsqueda.

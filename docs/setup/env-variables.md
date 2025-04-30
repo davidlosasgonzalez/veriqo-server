@@ -1,70 +1,71 @@
-# ⚙️ Variables de entorno
+# ⚙️ Variables de entorno – Veriqo
 
-Este documento detalla todas las variables de entorno requeridas por Veriqo, explicando su propósito y cómo deben configurarse correctamente en el archivo `.env`.
+Este documento detalla todas las variables de entorno utilizadas en el sistema Veriqo, explicando su finalidad y cómo deben configurarse correctamente.
 
 ## 📁 Archivo base
 
-El proyecto incluye un archivo de ejemplo:
+El proyecto incluye un archivo de ejemplo que puedes copiar para comenzar:
 
 ```bash
 cp env.example .env
 ```
 
-Completa el archivo `.env` con tus claves y credenciales reales:
+Luego edítalo y completa los campos con tus claves y credenciales reales.
+
+## 🧾 Estructura del archivo `.env`
 
 ```env
-# Claves de APIs externas
-OPENAI_API_KEY=your_openai_key
-NEWS_API_KEY=your_newsapi_key
-CLAUDE_API_KEY=your_claude_key
-BRAVE_API_KEY=your_brave_api_key
-GOOGLE_CLOUD_API_KEY=your_google_api_key
-GOOGLE_CX_ID=your_custom_search_id
-
-# Base de datos MySQL
-DB_TYPE=mysql
+# Configuración de la base de datos.
+DB_TYPE=mysql # mysql | postgres | sqlite | mariadb | oracle | mssql
 DB_HOST=127.0.0.1
+DB_PORT=3306
 DB_USER=root
-DB_PASSWORD=your_password
+DB_PASSWORD=
 DB_NAME=veriqo
 
-# Servidor
+# Claves de API para servicios externos.
+OPENAI_API_KEY=
+CLAUDE_API_KEY=
+BRAVE_API_KEY=
+GOOGLE_CLOUD_API_KEY=
+GOOGLE_CX_ID=
+NEWS_API_KEY=
+
+# Configuración del servidor.
 PORT=3001
+NODE_ENV=development
 
-# Modelos LLM
-VALIDATOR_MODEL=claude-3-5-sonnet-20241022
-FACTCHECKER_MODEL=gpt-4o
-
-# Embeddings
-EMBEDDING_MODEL=text-embedding-3-small
-EMBEDDING_MODEL_PROVIDER=openai
-
-# Otros parámetros
-FACT_CHECK_CACHE_DAYS=180         # Días que se cachean resultados de facts
-EMBEDDING_SIMILARITY_THRESHOLD=80 # Umbral % para detectar duplicados semánticos
-WAIT_FOR_FACT_TIMEOUT_MS=10000    # Timeout para esperar verificación factual
+# Modelos LLM y embeddings.
+LLM_VALIDATOR_PROVIDER=anthropic
+LLM_FACTCHECKER_PROVIDER=openai
+LLM_VALIDATOR_MODEL=claude-3-5-sonnet-20241022
+LLM_FACTCHECKER_MODEL=gpt-4o
+LLM_EMBEDDING_MODEL=text-embedding-3-small
+VALIDATOR_MAX_INPUT_CHARS=3000
+EMBEDDING_SIMILARITY_THRESHOLD=0.80
 ```
 
 ## 🧠 Explicación de variables clave
 
-| Variable                         | Descripción                                                             |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| `OPENAI_API_KEY`, etc.           | Claves para acceder a proveedores de IA y búsquedas externas.           |
-| `DB_HOST`, `DB_USER`, etc.       | Configuración de conexión a la base de datos MySQL.                     |
-| `PORT`                           | Puerto en el que corre el servidor NestJS.                              |
-| `VALIDATOR_MODEL`, etc.          | Modelos predeterminados para cada agente.                               |
-| `EMBEDDING_MODEL`, etc.          | Embeddings para normalización semántica.                                |
-| `FACT_CHECK_CACHE_DAYS`          | Tiempo de caché de respuestas factual para evitar consultas frecuentes. |
-| `EMBEDDING_SIMILARITY_THRESHOLD` | Umbral de similitud para descartar claims duplicados.                   |
-| `WAIT_FOR_FACT_TIMEOUT_MS`       | Tiempo máximo que espera el ValidatorAgent por el FactCheckerAgent.     |
+| Variable                         | Descripción                                                                |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `DB_TYPE`, `DB_HOST`, etc.       | Configuración de la base de datos relacional usada por Veriqo.             |
+| `OPENAI_API_KEY`, etc.           | Claves de acceso a APIs de modelos LLM y motores de búsqueda externos.     |
+| `PORT`                           | Puerto local donde se ejecuta el servidor NestJS.                          |
+| `NODE_ENV`                       | Entorno de ejecución: `development`, `staging`, `production`.              |
+| `LLM_VALIDATOR_MODEL`            | Modelo usado por el ValidatorAgent.                                        |
+| `LLM_FACTCHECKER_MODEL`          | Modelo usado por el FactCheckerAgent.                                      |
+| `LLM_EMBEDDING_MODEL`            | Modelo usado para generar embeddings semánticos.                           |
+| `EMBEDDING_SIMILARITY_THRESHOLD` | Umbral decimal (0.0-1.0) para considerar dos embeddings como equivalentes. |
+| `VALIDATOR_MAX_INPUT_CHARS`      | Límite de caracteres que acepta el validador por prompt.                   |
 
 ## ✅ Buenas prácticas
 
-- No subas el archivo `.env` a GitHub.
-- Usa `.env.local`, `.env.staging` o `.env.production` si trabajas con múltiples entornos.
-- Todas las variables están validadas al arrancar el sistema mediante Zod (`env.config.ts`).
+- 🔒 **No subas nunca el archivo `.env` a GitHub.**
+- 🧪 Usa entornos separados: `.env.local`, `.env.staging`, `.env.production`.
+- ✅ Las variables se validan al iniciar el sistema con Zod (`env.config.ts`).
 
-## 📁 Código relacionado
+## 🔗 Archivos relacionados
 
-- `src/config/env/env.config.ts`
-- `env.example` (en la raíz del proyecto)
+- `src/config/env/env.config.ts` → validación de las variables.
+- `env.example` → plantilla editable en la raíz del proyecto.

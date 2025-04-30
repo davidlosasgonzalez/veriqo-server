@@ -25,10 +25,6 @@ Toda la trazabilidad (prompts, hallazgos, verificaciones, métricas) se guarda e
 - **ValidatorAgent** detecta afirmaciones relevantes y decide si requieren verificación factual.
 - **FactCheckerAgent** realiza la verificación consultando fuentes externas y devolviendo evidencia.
 
-## ¿Qué significa `needsFactCheck: true`?
-
-Significa que la afirmación fue considerada ambigua, potencialmente errónea o no verificable automáticamente, y que se requiere intervención del FactCheckerAgent.
-
 ## ¿Cómo puedo probar la API rápidamente?
 
 Usa los comandos `curl` del `README.md` o importa la colección Postman incluida en `docs/postman/veriqo-api-collection.json`.
@@ -41,21 +37,16 @@ Puedes acceder a la documentación interactiva desde [`/api-docs`](http://localh
 
 Sí. El sistema está diseñado con agentes desacoplados y lógica basada en eventos, lo que permite despliegues distribuidos, horizontal scaling y trazabilidad completa.
 
-## ¿Puedo generar esta documentación localmente?
-
-Sí. Aunque Veriqo está construido con NestJS (Node.js), la documentación adicional está generada con **MkDocs**, una herramienta basada en Python.
-
-Esto no afecta al backend: es un sistema independiente, solo usado para documentar el proyecto de forma profesional.
-
-Si quieres levantar la documentación localmente, necesitas tener Python instalado y ejecutar:
-
-```bash
-pip install mkdocs mkdocs-material
-mkdocs serve
-```
-
-La documentación también se despliega automáticamente con GitHub Actions.
-
 ## ¿Qué modelos puedo cambiar?
 
-Puedes configurar los modelos de cada agente en el archivo `.env` usando las variables `VALIDATOR_MODEL` y `FACTCHECKER_MODEL`.
+Puedes configurar los modelos de cada agente en el archivo `.env` usando las variables `LLM_VALIDATOR_MODEL` y `LLM_FACTCHECKER_MODEL`.
+
+Para garantizar un tipado estricto y validación en tiempo de desarrollo, los modelos disponibles deben añadirse explícitamente en el enum `LlmModel`, ubicado en:
+
+```
+src/shared/types/enums/llm-model.types.ts
+```
+
+Esto permite que el validador de entorno (`env.config.ts`) use `z.nativeEnum(LlmModel)` con soporte completo de tipos.
+
+Puedes configurar los modelos de cada agente en el archivo `.env` usando las variables `LLM_VALIDATOR_MODEL` y `LLM_FACTCHECKER_MODEL`.

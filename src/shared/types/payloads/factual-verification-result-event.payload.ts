@@ -1,7 +1,7 @@
 import {
     AgentFactCategory,
     AgentFactStatus,
-} from '@/shared/types/agent-fact.types';
+} from '@/shared/types/enums/agent-fact.types';
 
 /**
  * Payload que se emite cuando se completa una verificación factual.

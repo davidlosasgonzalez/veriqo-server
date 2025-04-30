@@ -1,13 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
+import { AgentReasoningDto } from '@/agents/validator/dto/agent-reasoning.dto';
+import { AgentVerificationDto } from '@/agents/validator/dto/agent-verification.dto';
 import {
     AgentFactCategory,
     AgentFactStatus,
-} from '@/shared/types/agent-fact.types';
+} from '@/shared/types/enums/agent-fact.types';
 
 /**
  * DTO de salida que representa un hecho factual validado o verificado.
  */
+@Exclude()
 export class AgentFactDto {
     @ApiProperty()
     @Expose()
@@ -34,13 +37,15 @@ export class AgentFactDto {
     @Expose()
     category: AgentFactCategory;
 
-    @ApiPropertyOptional()
+    @ApiPropertyOptional({ type: AgentVerificationDto })
     @Expose()
-    summary?: string | null;
+    @Type(() => AgentVerificationDto)
+    verification?: AgentVerificationDto;
 
-    @ApiPropertyOptional()
+    @ApiPropertyOptional({ type: AgentReasoningDto })
     @Expose()
-    reasoning?: string | null;
+    @Type(() => AgentReasoningDto)
+    reasoning?: AgentReasoningDto;
 
     @ApiProperty()
     @Expose()

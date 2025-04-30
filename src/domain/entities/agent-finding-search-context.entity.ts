@@ -1,21 +1,12 @@
 /**
  * Contiene información auxiliar para mejorar la búsqueda o comparación de un claim.
  */
-/**
- * Contiene información auxiliar para mejorar la búsqueda o comparación de un claim.
- */
 export class AgentFindingSearchContext {
     /* Identificador único del contexto. */
     id!: string;
 
     /* Identificador del hallazgo asociado. */
-    findingId!: string;
-
-    /* Palabras clave relacionadas. */
-    keywords!: string[];
-
-    /* Sinónimos relacionados (opcional). */
-    synonyms?: Record<string, string[]> | null;
+    findingId?: string;
 
     /* Consulta estructurada de búsqueda. */
     searchQuery!: Record<string, string>;

@@ -59,9 +59,15 @@ export class AgentVerificationEntity {
     isOutdated: boolean;
 
     /**
-     * Razonamiento asociado a la verificación.
+     * Razonamiento asociado a esta verificación factual.
      */
-    @OneToOne(() => AgentReasoningEntity, { cascade: true, nullable: true })
+    @OneToOne(
+        () => AgentReasoningEntity,
+        (reasoning) => reasoning.verification,
+        {
+            nullable: true,
+        },
+    )
     @JoinColumn({ name: 'reasoning_id' })
     reasoning: AgentReasoningEntity | null;
 

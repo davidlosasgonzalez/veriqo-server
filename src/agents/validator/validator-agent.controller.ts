@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { VerifyClaimDto } from './dto/verify-claim.dto';
 import { ValidatorAgentService } from './validator-agent.service';
-import { AgentFact } from '@/domain/entities/agent-fact.entity';
+import { AgentFactDto } from '../fact-checker/dto/agent-fact.dto';
 import { AgentFinding } from '@/domain/entities/agent-finding.entity';
 import { DataResponse } from '@/shared/types/http-response.type';
 import { sanitizeFindings } from '@/shared/utils/facts/sanitize-findings';
@@ -113,7 +113,7 @@ export class ValidatorAgentController {
     })
     async getFactById(
         @Param('id') id: string,
-    ): Promise<DataResponse<AgentFact>> {
+    ): Promise<DataResponse<AgentFactDto>> {
         const fact = await this.verifyClaimService.getFactById(id);
 
         return {
