@@ -30,6 +30,8 @@ const baseConfig = {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-floating-promises': 'warn',
         '@typescript-eslint/no-unsafe-argument': 'warn',
+
+        // Orden de imports profesional.
         'import/order': [
             'error',
             {
@@ -38,7 +40,57 @@ const baseConfig = {
                     ['internal', 'sibling', 'parent'],
                     'index',
                 ],
-                alphabetize: { order: 'asc', caseInsensitive: true },
+                alphabetize: {
+                    order: 'asc',
+                    caseInsensitive: true,
+                },
+            },
+        ],
+
+        'import/newline-after-import': ['error', { count: 1 }],
+
+        // Espaciado limpio entre bloques lógicos.
+        'padding-line-between-statements': [
+            'error',
+
+            // Siempre línea en blanco después de const/let/var.
+            {
+                blankLine: 'always',
+                prev: ['const', 'let', 'var'],
+                next: '*',
+            },
+
+            // Pero no entre constantes consecutivas ni entre const y for.
+            {
+                blankLine: 'never',
+                prev: ['const', 'let', 'var'],
+                next: ['const', 'let', 'var', 'for'],
+            },
+
+            // Línea en blanco antes de return, if, for, try.
+            {
+                blankLine: 'always',
+                prev: '*',
+                next: ['return', 'if', 'for', 'try'],
+            },
+
+            // Después de bloques.
+            {
+                blankLine: 'always',
+                prev: ['block', 'block-like'],
+                next: '*',
+            },
+
+            // Entre funciones.
+            {
+                blankLine: 'always',
+                prev: 'function',
+                next: '*',
+            },
+            {
+                blankLine: 'always',
+                prev: '*',
+                next: 'function',
             },
         ],
     },

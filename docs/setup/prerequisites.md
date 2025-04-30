@@ -25,7 +25,7 @@ Antes de comenzar la instalación de Veriqo, verifica que tu entorno cumpla con 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/david-losas/veriqo-server.git
+git clone https://github.com/davidlosasgonzalez/veriqo-server
 cd veriqo-server
 ```
 

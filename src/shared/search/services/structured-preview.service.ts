@@ -1,30 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { StructuredSearchPreview } from '@/core/database/entities/structured-search-preview.entity';
+import { StructuredSearchPreview } from '@/domain/entities/structured-search-preview.entity';
 import { RawSearchResult } from '@/shared/types/raw-search-result.type';
-import { preprocessSearchPreview } from '@/shared/utils/search/preprocess-preview';
+import { preprocessSearchPreview } from '@/shared/utils/search/preprocess-search-preview';
 
 /**
- * Servicio encargado de transformar resultados de búsqueda en vistas previas estructuradas.
+ * Servicio para convertir resultados crudos de búsqueda en vistas estructuradas.
  */
 @Injectable()
 export class StructuredPreviewService {
-    constructor(
-        @InjectRepository(StructuredSearchPreview)
-        private readonly previewRepo: Repository<StructuredSearchPreview>,
-    ) {}
-
     /**
-     * Transforma y guarda resultados raw de búsqueda como previews estructuradas.
+     * Procesa una lista de resultados brutos a vistas previas estructuradas.
+     *
+     * @param results - Resultados crudos de la búsqueda.
+     * @returns Lista de vistas previas estructuradas.
      */
-    async createFromRaw(
-        raw: RawSearchResult[],
+    async process(
+        results: RawSearchResult[],
     ): Promise<StructuredSearchPreview[]> {
-        const previews = raw
-            .map(preprocessSearchPreview)
-            .map((data) => this.previewRepo.create(data));
-
-        return this.previewRepo.save(previews);
+        return results.map(preprocessSearchPreview);
     }
 }

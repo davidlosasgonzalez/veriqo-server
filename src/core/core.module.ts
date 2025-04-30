@@ -1,40 +1,23 @@
 import { Module } from '@nestjs/common';
-import {
-    GetPromptsController,
-    GetPromptByAgentController,
-    GetLogsController,
-    GetMetricsController,
-    GetVerificationStatsController,
-} from './controllers';
-
-import { DatabaseService } from './database';
-import { EventBusService } from '@/shared/events/event-bus.service';
-import { AgentFindingService } from '@/shared/facts/services/agent-finding.service';
-import { AgentVerificationService } from '@/shared/facts/services/agent-verification.service';
-import { AgentLoggerService } from '@/shared/logger/agent-logger.service';
-import { AgentPromptService } from '@/shared/prompts/agent-prompt.service';
-import { SharedModule } from '@/shared/shared.module';
+import { CoreController } from './core.controller';
+import { CoreService } from './core.service';
+import { AgentFactRepository } from '@/infrastructure/database/typeorm/repositories/agent-fact.repository';
+import { AgentFindingRepository } from '@/infrastructure/database/typeorm/repositories/agent-finding.repository';
+import { LlmModule } from '@/shared/llm/llm.module';
+import { AgentPromptService } from '@/shared/llm/services/agent-prompt.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AgentFindingEntity } from '@/infrastructure/database/typeorm/entities/agent-finding.entity';
+import { AgentFactEntity } from '@/infrastructure/database/typeorm/entities/agent-fact.entity';
 
 /**
- * Módulo central del sistema que expone endpoints para trazabilidad,
- * gestión de prompts, eventos, logs generados por los agentes y métricas del sistema.
+ * Módulo Core que proporciona endpoints de diagnóstico, métricas y configuración general.
  */
 @Module({
-    imports: [SharedModule],
-    controllers: [
-        GetPromptsController,
-        GetPromptByAgentController,
-        GetLogsController,
-        GetMetricsController,
-        GetVerificationStatsController,
+    imports: [
+        LlmModule,
+        TypeOrmModule.forFeature([AgentFindingEntity, AgentFactEntity]),
     ],
-    providers: [
-        DatabaseService,
-        AgentLoggerService,
-        AgentPromptService,
-        EventBusService,
-        AgentVerificationService,
-        AgentFindingService,
-    ],
+    controllers: [CoreController],
+    providers: [CoreService, AgentFindingRepository, AgentFactRepository],
 })
 export class CoreModule {}
