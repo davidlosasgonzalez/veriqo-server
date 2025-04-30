@@ -2,21 +2,21 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as morgan from 'morgan';
 import { AppModule } from './app.module';
+import { DatabaseSeederModule } from './infrastructure/database/database-seeder.module';
 import { env } from '@/config/env/env.config';
-import { customValidationPipe } from '@/shared/pipes/custom-validation.pipe';
-import { GlobalExceptionsFilter } from '@/shared/pipes/global-exceptions.filter';
+import { GlobalExceptionFilter } from '@/shared/pipes/global-exceptions.filter';
+import { GlobalValidationPipe } from '@/shared/pipes/global-validation';
 
 /**
- * Punto de entrada de la aplicación NestJS.
- * Configura middlewares, Swagger, validaciones y filtros globales.
+ * Inicializa y arranca la aplicación NestJS.
  */
 async function bootstrap() {
     try {
         const app = await NestFactory.create(AppModule);
 
+        app.useGlobalPipes(new GlobalValidationPipe());
+        app.useGlobalFilters(new GlobalExceptionFilter());
         app.setGlobalPrefix('api');
-        app.useGlobalFilters(new GlobalExceptionsFilter());
-        app.useGlobalPipes(customValidationPipe);
         app.use(morgan('dev'));
 
         const config = new DocumentBuilder()
@@ -29,9 +29,19 @@ async function bootstrap() {
             .addTag('fact-checker-agent')
             .addTag('core')
             .build();
-
         const document = SwaggerModule.createDocument(app, config);
+
         SwaggerModule.setup('api-docs', app, document);
+
+        if (process.env.NODE_ENV === 'development') {
+            const seederModule = app.select(DatabaseSeederModule);
+            const runner = seederModule.get(DatabaseSeederModule);
+
+            if (runner && typeof runner.runSeeders === 'function') {
+                console.log('Ejecutando seeders en entorno de desarrollo...');
+                await runner.runSeeders();
+            }
+        }
 
         await app.listen(env.PORT);
 
@@ -41,18 +51,23 @@ async function bootstrap() {
         console.log(
             `Swagger disponible en: http://localhost:${env.PORT}/api-docs`,
         );
-    } catch (error) {
-        console.error('Error durante el bootstrap de NestJS:', error);
+    } catch (err) {
+        console.error('Error durante el bootstrap de NestJS:', err);
     }
 }
 
 void bootstrap();
 
-// Captura errores no controlados.
+/**
+ * Maneja excepciones no controladas.
+ */
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
 });
 
+/**
+ * Maneja rechazos de promesas no manejados.
+ */
 process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
 });

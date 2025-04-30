@@ -2,6 +2,9 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { join } from 'path';
 import { env } from '../env/env.config';
 
+/**
+ * Configuración de TypeORM para la conexión a la base de datos.
+ */
 export const typeOrmConfig: TypeOrmModuleOptions = {
     type: env.DB_TYPE,
     host: env.DB_HOST,

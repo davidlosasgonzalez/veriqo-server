@@ -1,55 +1,62 @@
 import {
-    ExceptionFilter,
-    Catch,
     ArgumentsHost,
+    Catch,
+    ExceptionFilter,
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
-import { Response } from 'express';
-import { BaseResponse } from '@/shared/types/http-response.type';
-import { isHttpExceptionResponseWithData } from '@/shared/utils/http/is-http-exception-response-with-data';
-import { isHttpExceptionResponseWithMessage } from '@/shared/utils/http/is-http-exception-response-with-message';
+import { Request, Response } from 'express';
 
 /**
- * Filtro global que transforma todas las excepciones en una respuesta uniforme.
- * Se aplica automáticamente a todas las rutas si se registra como global.
+ * Filtro global para capturar y manejar excepciones en toda la aplicación.
+ * Ofrece respuesta uniforme para errores HTTP y no HTTP.
+ *
+ * @implements ExceptionFilter
  */
 @Catch()
-export class GlobalExceptionsFilter implements ExceptionFilter {
+export class GlobalExceptionFilter implements ExceptionFilter {
+    /**
+     * Captura las excepciones y genera una respuesta uniforme.
+     *
+     * @param exception - La excepción que se ha lanzado.
+     * @param host - El contexto que contiene la solicitud y la respuesta.
+     * @returns Respuesta JSON con el código de estado y los detalles del error.
+     */
     catch(exception: unknown, host: ArgumentsHost): void {
-        console.log('[GLOBAL EXCEPTION CAUGHT]:', exception);
-
         const ctx = host.switchToHttp();
-        const response = ctx.getResponse<Response>();
-
-        let status = HttpStatus.INTERNAL_SERVER_ERROR;
-        let message = 'Error interno del servidor';
-        let data: unknown = undefined;
+        const res = ctx.getResponse<Response>();
+        const req = ctx.getRequest<Request>();
 
         if (exception instanceof HttpException) {
-            status = exception.getStatus();
-            const exceptionResponse = exception.getResponse();
+            const status = exception.getStatus();
+            const body = exception.getResponse();
 
-            if (typeof exceptionResponse === 'string') {
-                message = exceptionResponse;
-            } else {
-                if (isHttpExceptionResponseWithMessage(exceptionResponse)) {
-                    message = exceptionResponse.message;
-                }
+            res.status(status).json({
+                statusCode: status,
+                message:
+                    typeof body === 'string' ? body : (body as any).message,
+                error:
+                    typeof body === 'string'
+                        ? exception.name
+                        : (body as any).error || exception.name,
+                timestamp: new Date().toISOString(),
+                path: req.url,
+            });
+        } else {
+            const status = HttpStatus.INTERNAL_SERVER_ERROR;
 
-                if (isHttpExceptionResponseWithData(exceptionResponse)) {
-                    data = exceptionResponse.data;
-                }
+            if (process.env.NODE_ENV === 'development') {
+                console.error('[Unhandled Exception]', exception);
             }
+
+            res.status(status).send({
+                statusCode: status,
+                message:
+                    (exception as any)?.message || 'Error interno del servidor',
+                error: (exception as any)?.name || 'InternalServerError',
+                timestamp: new Date().toISOString(),
+                path: req.url,
+            });
         }
-
-        const responseBody: BaseResponse | (BaseResponse & { data: unknown }) =
-            {
-                status: 'error',
-                message,
-                ...(data !== undefined && { data }),
-            };
-
-        response.status(status).json(responseBody);
     }
 }

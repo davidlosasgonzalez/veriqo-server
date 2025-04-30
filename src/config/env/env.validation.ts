@@ -1,5 +1,11 @@
 import { z } from 'zod';
+import { LlmEmbeddingProvider } from '@/shared/types/enums/llm-embedding-provider';
+import { LlmModel } from '@/shared/types/enums/llm-model.types';
+import { LlmProvider } from '@/shared/types/enums/llm-provider.enum';
 
+/**
+ * Esquema de validación para las variables de entorno utilizando Zod.
+ */
 export const envSchema = z.object({
     // Configuración de la base de datos.
     DB_TYPE: z.enum([
@@ -28,18 +34,15 @@ export const envSchema = z.object({
 
     // Configuración del servidor.
     PORT: z.coerce.number().int().positive().optional(),
+    NODE_ENV: z.string().min(1, 'NODE_ENV no puede estar vacío'),
 
     // Modelos LLM y embeddings.
-    VALIDATOR_MODEL: z.string().min(1, 'VALIDATOR_MODEL no puede estar vacío'),
+    LLM_VALIDATOR_PROVIDER: z.nativeEnum(LlmProvider),
+    LLM_FACTCHECKER_PROVIDER: z.nativeEnum(LlmProvider),
+    LLM_VALIDATOR_MODEL: z.nativeEnum(LlmModel),
+    LLM_EMBEDDING_MODEL: z.nativeEnum(LlmModel),
+    LLM_FACTCHECKER_MODEL: z.nativeEnum(LlmModel),
     VALIDATOR_MAX_INPUT_CHARS: z.coerce.number().default(3000),
-    FACTCHECKER_MODEL: z
-        .string()
-        .min(1, 'FACTCHECKER_MODEL no puede estar vacío'),
-    FACT_CHECK_CACHE_DAYS: z.coerce.number().int().min(1).default(7),
-    EMBEDDING_MODEL: z.string().min(1, 'EMBEDDING_MODEL no puede estar vacío'),
-    EMBEDDING_MODEL_PROVIDER: z
-        .string()
-        .min(1, 'EMBEDDING_MODEL_PROVIDER no puede estar vacío'),
     EMBEDDING_SIMILARITY_THRESHOLD: z.coerce
         .number()
         .min(0.0, 'Debe ser >= 0.0')
@@ -47,4 +50,7 @@ export const envSchema = z.object({
         .default(0.8),
 });
 
+/**
+ * Tipo inferido del esquema de validación de las variables de entorno.
+ */
 export type EnvSchema = z.infer<typeof envSchema>;

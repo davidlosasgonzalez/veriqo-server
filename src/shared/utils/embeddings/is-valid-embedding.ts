@@ -1,14 +1,14 @@
 /**
- * Verifica si un objeto es un embedding válido: array numérico con valores finitos.
- * @param embedding - Vector a validar.
- * @returns `true` si es un vector de números finitos.
+ * Verifica que el valor sea un vector numérico válido.
+ * Se asegura de que el valor sea un array de números y que tenga al menos un elemento.
+ *
+ * @param value - Valor a comprobar para verificar si es un embedding válido.
+ * @returns `true` si el valor es un array de números válido, de lo contrario `false`.
  */
-export function isValidEmbedding(embedding: unknown): embedding is number[] {
+export function isValidEmbedding(value: unknown): value is number[] {
     return (
-        Array.isArray(embedding) &&
-        embedding.length > 0 &&
-        embedding.every(
-            (value) => typeof value === 'number' && Number.isFinite(value),
-        )
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.every((x) => typeof x === 'number')
     );
 }
