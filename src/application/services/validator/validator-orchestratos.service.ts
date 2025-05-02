@@ -1,12 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { CreateAgentFactUseCaseWrite } from '../../use-cases/write/create-agent-fact.use-case.write';
-import { CreateAgentFindingSearchContextUseCaseWrite } from '../../use-cases/write/create-agent-finding-search-context.use-case.write';
-import { CreateAgentFindingUseCaseWrite } from '../../use-cases/write/create-agent-finding.use-case.write';
-import { CreateAgentReasoningUseCaseWrite } from '../../use-cases/write/create-agent-reasoning.use-case.write';
-import { IAgentFactRepository } from '@/application/interfaces/agent-fact-repository.interface';
 import { IAgentFindingRepository } from '@/application/interfaces/agent-finding-repository.interface';
-import { AgentFactRepositoryToken } from '@/application/tokens/agent-fact-repository.token';
+import { IAgentReasoningRepository } from '@/application/interfaces/agent-reasoning-repository.interfact';
 import { AgentFindingRepositoryToken } from '@/application/tokens/agent-finding-repository.token';
+import { AgentReasoningRepositoryToken } from '@/application/tokens/agent-reasoning-repository.token';
 import { EmbeddingServiceToken } from '@/application/tokens/embedding.token';
 import { NormalizeClaimsUseCaseRead } from '@/application/use-cases/read/normalized-claims.use-case.read';
 import { env } from '@/config/env/env.config';
@@ -25,6 +20,11 @@ import { NormalizedClaim } from '@/shared/types/parsed-types/normalized-claim.ty
 import { ValidatedClaimResultPayload } from '@/shared/types/payloads/validated-claim-result.payload';
 import { buildClaudePrompt } from '@/shared/utils/llm/build-claude-prompt';
 import { parseLlmResponse } from '@/shared/utils/text/parse-llm-response';
+import { Inject, Injectable } from '@nestjs/common';
+import { CreateAgentFactUseCaseWrite } from '../../use-cases/write/create-agent-fact.use-case.write';
+import { CreateAgentFindingSearchContextUseCaseWrite } from '../../use-cases/write/create-agent-finding-search-context.use-case.write';
+import { CreateAgentFindingUseCaseWrite } from '../../use-cases/write/create-agent-finding.use-case.write';
+import { CreateAgentReasoningUseCaseWrite } from '../../use-cases/write/create-agent-reasoning.use-case.write';
 
 /**
  * Caso de uso WRITE para orquestar el flujo completo de verificación de un claim textual.
@@ -36,8 +36,8 @@ export class ValidatorOrchestratorService {
         private readonly embeddingService: IEmbeddingService,
         @Inject(AgentFindingRepositoryToken)
         private readonly agentFindingRepository: IAgentFindingRepository,
-        @Inject(AgentFactRepositoryToken)
-        private readonly agentFactRepository: IAgentFactRepository,
+        @Inject(AgentReasoningRepositoryToken)
+        private readonly agentReasoningRepository: IAgentReasoningRepository,
         private readonly normalizeClaims: NormalizeClaimsUseCaseRead,
         private readonly createFact: CreateAgentFactUseCaseWrite,
         private readonly createFinding: CreateAgentFindingUseCaseWrite,
@@ -139,8 +139,7 @@ export class ValidatorOrchestratorService {
                         factId: fact.id,
                     });
 
-                fact.reasonings = [reasoning];
-                await this.agentFactRepository.save(fact);
+                await this.agentReasoningRepository.save(reasoning);
             }
 
             const fullFinding = await this.agentFindingRepository.findById(

@@ -1,9 +1,9 @@
-import { fileURLToPath } from 'url';
-import path from 'path';
+import eslintPluginTypescript from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import eslintPluginImport from 'eslint-plugin-import';
 import globals from 'globals';
-import eslintPluginTypescript from '@typescript-eslint/eslint-plugin';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -30,22 +30,6 @@ const baseConfig = {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-floating-promises': 'warn',
         '@typescript-eslint/no-unsafe-argument': 'warn',
-
-        // Orden de imports profesional.
-        'import/order': [
-            'error',
-            {
-                groups: [
-                    ['builtin', 'external'],
-                    ['internal', 'sibling', 'parent'],
-                    'index',
-                ],
-                alphabetize: {
-                    order: 'asc',
-                    caseInsensitive: true,
-                },
-            },
-        ],
 
         'import/newline-after-import': ['error', { count: 1 }],
 

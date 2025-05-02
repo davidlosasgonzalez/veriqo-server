@@ -1,6 +1,6 @@
 {
     "name": "veriqo-server",
-    "version": "0.6.0-beta",
+    "version": "0.7.0-beta",
     "description": "Backend modular para verificación factual con IA. Potenciado por GPT-4o, Claude, Brave Search y Google CSE.",
     "author": "David Losas González",
     "license": "MIT",
