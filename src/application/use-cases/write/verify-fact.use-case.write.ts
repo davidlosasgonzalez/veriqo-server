@@ -1,5 +1,3 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { IAgentReasoningRepository } from '@/application/interfaces/agent-reasoning-repository.interfact';
 import { AgentReasoningRepositoryToken } from '@/application/tokens/agent-reasoning-repository.token';
 import { env } from '@/config/env/env.config';
@@ -22,6 +20,8 @@ import { LlmMessage } from '@/shared/types/parsed-types/llm-message.type';
 import { RawSearchResult } from '@/shared/types/raw-search-result.type';
 import { buildQuery } from '@/shared/utils/search/build-query';
 import { parseLlmResponse } from '@/shared/utils/text/parse-llm-response';
+import { Inject, Injectable } from '@nestjs/common';
+import { ChatCompletionMessageParam } from 'openai/resources/chat';
 
 /**
  * Caso de uso WRITE para verificar un fact mediante búsqueda externa y razonamiento estructurado.
