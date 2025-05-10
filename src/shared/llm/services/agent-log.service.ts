@@ -1,26 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AgentFindingSearchContextEntity } from '@/infrastructure/database/typeorm/entities/agent-finding-search-context.entity';
-import { AgentLogEntity } from '@/infrastructure/database/typeorm/entities/agent-log.entity';
-import { AgentPromptEntity } from '@/infrastructure/database/typeorm/entities/agent-prompt.entity';
 
-/**
- * Servicio para la creación y recuperación de logs de actividad de los agentes LLM.
- */
+import { AgentLogOrmEntity } from '@/shared/infrastructure/entities/agent-log.orm-entity';
+import { AgentPromptOrmEntity } from '@/shared/infrastructure/entities/agent-prompt.orm-entity';
+
 @Injectable()
 export class AgentLogService {
     constructor(
-        @InjectRepository(AgentLogEntity)
-        private readonly logRepository: Repository<AgentLogEntity>,
+        @InjectRepository(AgentLogOrmEntity)
+        private readonly logRepository: Repository<AgentLogOrmEntity>,
     ) {}
 
-    /**
-     * Crea un nuevo log asociado a una interacción con un modelo LLM.
-     *
-     * @param params Datos necesarios para registrar el log.
-     * @returns El log creado.
-     */
     async create(params: {
         agentName: string;
         model: string;
@@ -29,8 +20,8 @@ export class AgentLogService {
         tokensInput?: number;
         tokensOutput?: number;
         elapsedTime?: number;
-        prompt?: AgentPromptEntity | null;
-    }): Promise<AgentLogEntity> {
+        prompt?: AgentPromptOrmEntity | null;
+    }): Promise<AgentLogOrmEntity> {
         const now = new Date();
         const log = this.logRepository.create({
             agentName: params.agentName,
@@ -44,15 +35,10 @@ export class AgentLogService {
             prompt: params.prompt ?? null,
         });
 
-        return await this.logRepository.save(log);
+        return this.logRepository.save(log);
     }
 
-    /**
-     * Recupera todos los logs registrados, ordenados por fecha descendente.
-     *
-     * @returns Lista de AgentLogEntity
-     */
-    async findAll(): Promise<AgentLogEntity[]> {
+    async findAll(): Promise<AgentLogOrmEntity[]> {
         return this.logRepository.find({
             order: { createdAt: 'DESC' },
             relations: ['prompt'],

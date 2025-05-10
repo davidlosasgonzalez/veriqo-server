@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+
 import { env } from '@/config/env/env.config';
+import { GoogleSearchItem } from '@/shared/types/raw-search-provider/google-search-item.type';
 import { RawSearchResult } from '@/shared/types/raw-search-result.type';
 import { enrichQueryWithSites } from '@/shared/utils/search/enrich-query-with-sites';
 
@@ -32,7 +34,7 @@ export class GoogleSearchService {
             },
         });
 
-        return (response.data.items ?? []).map((item: any) => ({
+        return (response.data.items ?? []).map((item: GoogleSearchItem) => ({
             url: item.link,
             title: item.title,
             snippet: item.snippet,

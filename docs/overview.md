@@ -1,18 +1,16 @@
 # 🚀 Visión General
 
-## 🌐 Contexto y alcance
-
 **Veriqo** es un sistema especializado en la verificación factual automatizada de afirmaciones de interés público, como noticias, declaraciones políticas, eventos históricos, ciencia y tecnología. Combina inteligencia artificial avanzada con fuentes verificables y se basa en una arquitectura desacoplada mediante agentes inteligentes.
 
 > ⚠️ Veriqo **no está diseñado** para verificar perfiles personales o contenido sin trazabilidad. Su enfoque es la verificación objetiva y documentada de afirmaciones relevantes para el conocimiento general.
 
-### ✅ Casos ideales
+## ✅ Casos ideales
 
 - Declaraciones verificables realizadas por figuras públicas.
 - Datos históricos, científicos, económicos o tecnológicos.
 - Afírmaciones contenidas en noticias, reportes y artículos especializados.
 
-### ⚠️ Casos no recomendados
+## ⚠️ Casos no recomendados
 
 - Búsqueda de información sobre personas poco conocidas.
 - Afírmaciones sin posibilidad de trazabilidad o sin fuentes.
@@ -27,7 +25,7 @@
 | 3   | Trazabilidad total         | Razonamientos, fuentes, embeddings y resultados quedan almacenados en MySQL.                                                                                                    |
 | 4   | Arquitectura desacoplada   | Agentes independientes coordinados por eventos, escalables horizontalmente.                                                                                                     |
 | 5   | Deduplicación semántica    | Embeddings con `text-embedding-3-small` de OpenAI para evitar duplicados y reusar facts existentes.                                                                             |
-| 6   | Documentación viva         | Swagger UI y Markdown documentado en `/docs`, con ejemplos y estructuras completas.                                                                                             |
+| 6   | Documentación              | Swagger UI y Markdown documentado en `/docs`, con ejemplos y estructuras completas.                                                                                             |
 
 ## 🛠️ Stack tecnológico
 
@@ -35,12 +33,16 @@
 - **Framework Web:** NestJS 11 con arquitectura modular profesional
 - **Base de datos:** MySQL 5.7 con ORM TypeORM 0.3
 - **Inteligencia Artificial:**
+
     - OpenAI (GPT-4o, embeddings `text-embedding-3-small`)
     - Anthropic Claude 3.5 (modelo por defecto del agente Validator)
+
 - **Fuentes de verificación:**
+
     - Brave Search API (por defecto)
     - Google Programmable Search (fallback)
     - NewsAPI (como último recurso)
+
 - **Throttle y control de límites:** Bottleneck 2.19 para evitar 429 en servicios externos
 - **Dev Experience:** ESLint, Prettier, Zod (validaciones seguras y parsing), Swagger
 - **Observabilidad:** Logger con Morgan y sistema de logs propio `AgentLog`

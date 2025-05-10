@@ -1,26 +1,38 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { AgentLogOrmEntity } from '../infrastructure/entities/agent-log.orm-entity';
+import { AgentPromptOrmEntity } from '../infrastructure/entities/agent-prompt.orm-entity';
+
 import { AgentLogService } from './services/agent-log.service';
 import { AgentPromptService } from './services/agent-prompt.service';
 import { ClaudeChatService } from './services/claude-chat.service';
 import { LlmRouterService } from './services/llm-router.service';
 import { OpenAiChatService } from './services/openai-chat.service';
-import { AgentLogEntity } from '@/infrastructure/database/typeorm/entities/agent-log.entity';
-import { AgentPromptEntity } from '@/infrastructure/database/typeorm/entities/agent-prompt.entity';
+import { OpenAiEmbeddingService } from './services/openai-embedding.service';
 
-/**
- * Módulo compartido que agrupa los servicios de acceso a modelos LLM (OpenAI, Claude).
- */
+import { EmbeddingServiceToken } from '@/shared/tokens/embedding-service.token';
+
 @Module({
-    imports: [TypeOrmModule.forFeature([AgentPromptEntity, AgentLogEntity])],
+    imports: [
+        TypeOrmModule.forFeature([AgentPromptOrmEntity, AgentLogOrmEntity]),
+    ],
     providers: [
-        OpenAiChatService,
         OpenAiChatService,
         ClaudeChatService,
         LlmRouterService,
         AgentPromptService,
         AgentLogService,
+        {
+            provide: EmbeddingServiceToken,
+            useClass: OpenAiEmbeddingService,
+        },
     ],
-    exports: [LlmRouterService, AgentPromptService, AgentLogService],
+    exports: [
+        LlmRouterService,
+        AgentPromptService,
+        AgentLogService,
+        EmbeddingServiceToken,
+    ],
 })
 export class LlmModule {}

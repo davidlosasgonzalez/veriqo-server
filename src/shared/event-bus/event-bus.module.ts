@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
+
 import { EventBusService } from './event-bus.service';
 
-/**
- * Módulo que provee y exporta el servicio `EventBusService`.
- */
 @Module({
+    imports: [CqrsModule],
     providers: [EventBusService],
     exports: [EventBusService],
 })

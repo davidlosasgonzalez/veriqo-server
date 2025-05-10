@@ -11,80 +11,62 @@ const baseConfig = {
     files: ['**/*.ts'],
     languageOptions: {
         parser: tsParser,
-        globals: {
-            ...globals.node,
-            ...globals.jest,
-        },
-        ecmaVersion: 2015,
-        sourceType: 'module',
         parserOptions: {
+            ecmaVersion: 'latest',
+            sourceType: 'module',
             project: [path.join(__dirname, 'tsconfig.json')],
             tsconfigRootDir: __dirname,
         },
+        globals: {
+            ...globals.node,
+            ...globals.es2021,
+        },
     },
     plugins: {
-        import: eslintPluginImport,
         '@typescript-eslint': eslintPluginTypescript,
+        import: eslintPluginImport,
     },
     rules: {
-        '@typescript-eslint/no-explicit-any': 'off',
+        // TypeScript
+        '@typescript-eslint/no-explicit-any': 'warn',
         '@typescript-eslint/no-floating-promises': 'warn',
         '@typescript-eslint/no-unsafe-argument': 'warn',
+        '@typescript-eslint/explicit-module-boundary-types': 'off',
 
+        // Import order
+        'import/order': [
+            'error',
+            {
+                groups: [
+                    'builtin',
+                    'external',
+                    'internal',
+                    'parent',
+                    'sibling',
+                    'index',
+                ],
+                'newlines-between': 'always',
+                alphabetize: {
+                    order: 'asc',
+                    caseInsensitive: true,
+                },
+            },
+        ],
         'import/newline-after-import': ['error', { count: 1 }],
 
-        // Espaciado limpio entre bloques lógicos.
+        // Logical spacing
         'padding-line-between-statements': [
             'error',
-
-            // Siempre línea en blanco después de const/let/var.
-            {
-                blankLine: 'always',
-                prev: ['const', 'let', 'var'],
-                next: '*',
-            },
-
-            // Pero no entre constantes consecutivas ni entre const y for.
-            {
-                blankLine: 'never',
-                prev: ['const', 'let', 'var'],
-                next: ['const', 'let', 'var', 'for'],
-            },
-
-            // Línea en blanco antes de return, if, for, try.
             {
                 blankLine: 'always',
                 prev: '*',
                 next: ['return', 'if', 'for', 'try'],
             },
-
-            // Después de bloques.
-            {
-                blankLine: 'always',
-                prev: ['block', 'block-like'],
-                next: '*',
-            },
-
-            // Entre funciones.
-            {
-                blankLine: 'always',
-                prev: 'function',
-                next: '*',
-            },
-            {
-                blankLine: 'always',
-                prev: '*',
-                next: 'function',
-            },
+            { blankLine: 'always', prev: ['block', 'block-like'], next: '*' },
+            { blankLine: 'always', prev: 'function', next: '*' },
+            { blankLine: 'always', prev: '*', next: 'function' },
         ],
     },
 };
 
-const testOverrides = {
-    files: ['tests/**/*.unit-spec.ts'],
-    rules: {
-        '@typescript-eslint/unbound-method': 'off',
-    },
-};
-
-export default [baseConfig, testOverrides];
+export default [baseConfig];
