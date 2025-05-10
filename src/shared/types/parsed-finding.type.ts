@@ -1,4 +1,4 @@
-import { AgentFactCategory } from './enums/agent-fact.types';
+import { type FactCategory } from '../domain/enums/fact-category.enum';
 
 /**
  * Representa una afirmación normalizada extraída de un texto por el modelo.
@@ -8,7 +8,7 @@ export type ParsedFinding = {
     claim: string;
     searchQuery: string;
     siteSuggestions?: string[];
-    category: AgentFactCategory;
+    category: FactCategory;
     explanation?: string;
     needsFactCheckReason?: string;
 };

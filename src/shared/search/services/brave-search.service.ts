@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import Bottleneck from 'bottleneck';
+
 import { env } from '@/config/env/env.config';
+import { BraveWebResultItem } from '@/shared/types/raw-search-provider/brave-web-result-item.type';
 import { RawSearchResult } from '@/shared/types/raw-search-result.type';
 import { enrichQueryWithSites } from '@/shared/utils/search/enrich-query-with-sites';
 
@@ -45,15 +47,19 @@ export class BraveSearchService {
                     },
                 });
 
-                return (response.data.web?.results ?? []).map((item: any) => ({
-                    url: item.url,
-                    title: item.title,
-                    snippet: item.description,
-                }));
-            } catch (err: any) {
-                if (err.response?.status === 429) {
-                    console.warn('[Brave] Rate limit exceeded');
-                    throw new Error('BRAVE_RATE_LIMIT');
+                return (response.data.web?.results ?? []).map(
+                    (item: BraveWebResultItem) => ({
+                        url: item.url,
+                        title: item.title,
+                        snippet: item.description,
+                    }),
+                );
+            } catch (err: unknown) {
+                if (axios.isAxiosError(err)) {
+                    if (err.response?.status === 429) {
+                        console.warn('[Brave] Rate limit exceeded');
+                        throw new Error('BRAVE_RATE_LIMIT');
+                    }
                 }
 
                 throw err;

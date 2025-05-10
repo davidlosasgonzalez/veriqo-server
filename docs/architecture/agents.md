@@ -1,4 +1,4 @@
-# 📐 Arquitectura de Agentes
+# 📀 Arquitectura de Agentes
 
 Este documento describe en detalle los dos agentes clave que sustentan la verificación factual automatizada en **Veriqo**: el **ValidatorAgent** y el **FactCheckerAgent**.
 
@@ -8,21 +8,27 @@ Este documento describe en detalle los dos agentes clave que sustentan la verifi
 - **Responsabilidad principal:** Detectar afirmaciones que requieren verificación factual externa.
 - **Eventos emitidos:** `FACTUAL_CHECK_REQUIRED`
 
-### 🚦 Parámetros clave:
+### ⚖️ Parámetros clave:
 
 - **`waitForFact`** (boolean):
-    - `true`: El ValidatorAgent espera (con timeout configurable) el resultado factual del FactCheckerAgent antes de retornar la respuesta final.
-    - `false`: Retorna únicamente el análisis inicial, adecuado para procesamiento en lotes.
+
+    - `true`: Si el ValidatorAgent detecta que la afirmación requiere verificación externa, espera a que el FactCheckerAgent complete el proceso y devuelva un veredicto final antes de responder. Esto garantiza que el resultado devuelto al usuario ya incluye la verificación factual completa en caso de ser necesaria.
+    - `false`: Retorna únicamente el análisis preliminar, lo que resulta útil para flujos por lotes o asincrónicos donde la verificación puede completarse posteriormente.
+
+    > ⚠️ Este parámetro no está en uso. Formaba parte de una implementación anterior que funcionaba correctamente, pero quedó pendiente de reimplementación tras la modularización del sistema. Se ha mantenido porque se planea reutilizarlo en el futuro para permitir respuestas asincrónicas coordinadas entre agentes.
+
 - **`needsFactCheck`**: Indica si la afirmación detectada debe ser confirmada externamente.
 - **`needsFactCheckReason`**: Justificación breve para delegar al FactCheckerAgent.
 
-### 🔄 Flujo operativo:
+### ↺ Flujo operativo:
 
 1. Recibe petición `POST /validators/analyze` con el parámetro `prompt`.
 2. Utiliza embeddings (OpenAI `text-embedding-3-small`) para normalizar y detectar afirmaciones clave.
 3. Clasifica la afirmación:
+
     - **Sin errores detectados**: Responde inmediatamente con `data: []`.
     - **Ambigüedad o error factual**: Retorna detalles claros y establece `needsFactCheck: true`.
+
 4. Si `waitForFact: true` y `needsFactCheck: true`, activa un timeout mientras espera respuesta del FactCheckerAgent.
 
 ## 🌐 FactCheckerAgent
@@ -50,11 +56,13 @@ Este documento describe en detalle los dos agentes clave que sustentan la verifi
 1. Escucha eventos del tipo `FACTUAL_CHECK_REQUIRED`.
 2. Ejecuta búsqueda simultánea en APIs externas.
 3. Sintetiza los resultados mediante GPT-4o:
+
     - Evalúa relevancia semántica de resultados obtenidos.
     - Genera un JSON claro con conclusiones y fuentes utilizadas.
+
 4. Publica el evento `FACTUAL_VERIFICATION_RESULT`, devolviendo la información sintetizada para su uso inmediato.
 
-### 🎯 Ejemplo de respuesta factual:
+### 🌟 Ejemplo de respuesta factual:
 
 ```json
 {
@@ -77,5 +85,7 @@ Este documento describe en detalle los dos agentes clave que sustentan la verifi
 
 - Ambos agentes pueden desplegarse horizontalmente en múltiples instancias sin estado gracias a la arquitectura basada en eventos (`EventBus`).
 - Todas las verificaciones y análisis son registrados con precisión en MySQL, incluyendo:
+
     - Estado de verificación, fuentes utilizadas, logs de eventos y métricas de rendimiento.
+
 - Esto permite un debugging sencillo y una auditoría completa del proceso factual.

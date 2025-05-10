@@ -1,11 +1,14 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as morgan from 'morgan';
+
 import { AppModule } from './app.module';
-import { DatabaseSeederModule } from './infrastructure/database/database-seeder.module';
+import { DatabaseSeederModule } from './shared/infrastructure/database/modules/database-seeder.module';
+import { GlobalExceptionFilter } from './shared/presentation/filters/global-exceptions.filter';
+import { GlobalValidationPipe } from './shared/presentation/pipes/global-validation.pipe';
+
 import { env } from '@/config/env/env.config';
-import { GlobalExceptionFilter } from '@/shared/pipes/global-exceptions.filter';
-import { GlobalValidationPipe } from '@/shared/pipes/global-validation';
 
 /**
  * Inicializa y arranca la aplicación NestJS.
@@ -29,6 +32,7 @@ async function bootstrap() {
             .addTag('fact-checker-agent')
             .addTag('core')
             .build();
+
         const document = SwaggerModule.createDocument(app, config);
 
         SwaggerModule.setup('api-docs', app, document);
@@ -45,14 +49,20 @@ async function bootstrap() {
 
         await app.listen(env.PORT);
 
-        console.log(
+        Logger.log(
             `Veriqo backend iniciado: http://localhost:${env.PORT}/api`,
+            'Bootstrap',
         );
-        console.log(
+        Logger.log(
             `Swagger disponible en: http://localhost:${env.PORT}/api-docs`,
+            'Bootstrap',
         );
     } catch (err) {
-        console.error('Error durante el bootstrap de NestJS:', err);
+        Logger.error(
+            'Error durante el bootstrap de NestJS',
+            err instanceof Error ? err.stack : String(err),
+            'Bootstrap',
+        );
     }
 }
 
@@ -62,12 +72,12 @@ void bootstrap();
  * Maneja excepciones no controladas.
  */
 process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
+    Logger.error('Uncaught Exception', err.stack ?? String(err), 'Process');
 });
 
 /**
  * Maneja rechazos de promesas no manejados.
  */
 process.on('unhandledRejection', (reason) => {
-    console.error('Unhandled Rejection:', reason);
+    Logger.error('Unhandled Rejection', String(reason), 'Process');
 });

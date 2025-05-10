@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { LlmEmbeddingProvider } from '@/shared/types/enums/llm-embedding-provider';
-import { LlmModel } from '@/shared/types/enums/llm-model.types';
-import { LlmProvider } from '@/shared/types/enums/llm-provider.enum';
+
+import { LLM_EMBEDDING_MODEL } from '@/shared/domain/enums/llm-embedding-model.enum';
+import { LLM_MODEL } from '@/shared/domain/enums/llm-model.enum';
+import { LLM_PROVIDER } from '@/shared/domain/enums/llm-provider.enum';
 
 /**
  * Esquema de validación para las variables de entorno utilizando Zod.
@@ -37,11 +38,11 @@ export const envSchema = z.object({
     NODE_ENV: z.string().min(1, 'NODE_ENV no puede estar vacío'),
 
     // Modelos LLM y embeddings.
-    LLM_VALIDATOR_PROVIDER: z.nativeEnum(LlmProvider),
-    LLM_FACTCHECKER_PROVIDER: z.nativeEnum(LlmProvider),
-    LLM_VALIDATOR_MODEL: z.nativeEnum(LlmModel),
-    LLM_EMBEDDING_MODEL: z.nativeEnum(LlmModel),
-    LLM_FACTCHECKER_MODEL: z.nativeEnum(LlmModel),
+    LLM_VALIDATOR_PROVIDER: z.nativeEnum(LLM_PROVIDER),
+    LLM_FACTCHECKER_PROVIDER: z.nativeEnum(LLM_PROVIDER),
+    LLM_VALIDATOR_MODEL: z.nativeEnum(LLM_MODEL),
+    LLM_EMBEDDING_MODEL: z.nativeEnum(LLM_EMBEDDING_MODEL),
+    LLM_FACTCHECKER_MODEL: z.nativeEnum(LLM_MODEL),
     VALIDATOR_MAX_INPUT_CHARS: z.coerce.number().default(3000),
     EMBEDDING_SIMILARITY_THRESHOLD: z.coerce
         .number()

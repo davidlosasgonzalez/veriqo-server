@@ -9,7 +9,7 @@
  * @throws Error si no se puede recuperar un JSON válido o si el bloque está estructuralmente incompleto.
  * @returns Objeto JSON parseado con tipo genérico T.
  */
-export function parseLlmResponse<T = Record<string, any>>(
+export function parseLlmResponse<T = Record<string, string>>(
     rawOutput: string,
 ): T {
     try {
@@ -31,8 +31,15 @@ export function parseLlmResponse<T = Record<string, any>>(
 
         return parsed as T;
     } catch (err) {
+        this.logger.error(
+            'Error al parsear la respuesta del modelo',
+            err instanceof Error ? err.stack : String(err),
+        );
+
         throw new Error(
-            `Error al parsear la respuesta del modelo: ${(err as Error).message}`,
+            `Error al parsear la respuesta del modelo: ${
+                err instanceof Error ? err.message : String(err)
+            }`,
         );
     }
 }

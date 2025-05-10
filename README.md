@@ -6,8 +6,10 @@
 
 Veriqo automatiza la detección de afirmaciones incorrectas, engañosas o ambiguas mediante dos agentes autónomos:
 
-- **ValidatorAgent**: analiza afirmaciones y detecta inconsistencias o errores potenciales.
-- **FactCheckerAgent**: verifica afirmaciones consultando fuentes externas (Google, Brave, NewsAPI) y genera razonamientos explicativos.
+- **ValidatorAgent**: analiza afirmaciones, las normaliza y detecta inconsistencias potenciales.
+- **FactCheckerAgent**: responde a eventos emitidos por el ValidatorAgent, verificando afirmaciones con fuentes externas (Google, Brave, NewsAPI) y generando razonamientos explicativos.
+
+> 🧩 El FactCheckerAgent no expone endpoints REST directos. Está diseñado para actuar de forma automática en respuesta a eventos asincrónicos como `FactualCheckRequired`, siguiendo una separación estricta de responsabilidades.
 
 Gracias a su arquitectura orientada a eventos y modularización por agente, Veriqo es fácilmente extensible, altamente trazable y escalable horizontalmente.
 
@@ -62,11 +64,11 @@ Consulta la documentación modular organizada por bloques funcionales:
 - 🧹 [Arquitectura de agentes](docs/architecture/agents.md)
 - 🧠 [Modelos LLM y criterios de elección](docs/architecture/models-choice.md)
 - ⚙️ [Prerrequisitos e instalación](docs/setup/prerequisites.md)
-- 🗒️ [Variables de entorno](docs/setup/env-variables.md)
+- 📒 [Variables de entorno](docs/setup/env-variables.md)
 - 📚 [Base de datos](docs/database/database-schema.md)
 - 🔍 [API – ValidatorAgent](docs/api/validators.md)
 - 🧪 [API – FactCheckerAgent](docs/api/facts.md)
-- 🗺️ [API – Core (logs, prompts, stats)](docs/api/core.md)
+- 🗘️ [API – Core (logs, prompts, stats)](docs/api/core.md)
 - ↺ [Flujo Validator → FactChecker](docs/flows/validation-to-factcheck.md)
 - ❓ [FAQ – Preguntas frecuentes](docs/faq.md)
 
@@ -80,6 +82,6 @@ Consulta la documentación modular organizada por bloques funcionales:
 
 Licencia **MIT**.
 
-Creado y mantenido por **David Losas González**\
-📨 [david.losas.gonzalez@gmail.com](mailto:david.losas.gonzalez@gmail.com)\
+Creado y mantenido por **David Losas González**
+📨 [david.losas.gonzalez@gmail.com](mailto:david.losas.gonzalez@gmail.com)
 🔗 [LinkedIn](https://www.linkedin.com/in/david-losas-gonzález-2ba888174)

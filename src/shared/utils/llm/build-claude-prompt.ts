@@ -1,4 +1,4 @@
-import { LlmMessage } from '@/shared/types/parsed-types/llm-message.type';
+import { LlmMessage } from '@/shared/domain/value-objects/llm-message.vo';
 
 /**
  * Construye un mensaje único tipo 'user' para Claude fusionando instrucciones + texto.
@@ -15,10 +15,7 @@ export function buildClaudePrompt(
     return [
         {
             role: 'user',
-            content: `${systemContent.trim()}
-
-            Texto a analizar:
-            ${userContent.trim()}`,
+            content: `${systemContent.trim()}\n\nTexto a analizar:\n${userContent.trim()}`,
         },
-    ];
+    ] satisfies LlmMessage[];
 }

@@ -1,32 +1,35 @@
+import { Logger } from '@nestjs/common';
 import { config } from 'dotenv';
+
 import { envSchema } from './env.validation';
-import { LlmEmbeddingProvider } from '@/shared/types/enums/llm-embedding-provider';
-import { LlmModel } from '@/shared/types/enums/llm-model.types';
-import { LlmProvider } from '@/shared/types/enums/llm-provider.enum';
+
+import { type LlmModel } from '@/shared/domain/enums/llm-model.enum';
+import { type LlmProvider } from '@/shared/domain/enums/llm-provider.enum';
 
 config();
 
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-    console.error('Error validando variables de entorno:');
-    console.error(parsedEnv.error.format());
+    Logger.error(
+        'Error validando variables de entorno',
+        JSON.stringify(parsedEnv.error.format(), null, 2),
+        'EnvConfig',
+    );
+
     process.exit(1);
 }
 
 /**
  * Tipos de bases de datos soportadas.
  */
-export type SupportedDbType =
+type SupportedDbType =
     | 'mysql'
     | 'postgres'
     | 'mariadb'
     | 'sqlite'
     | 'better-sqlite3';
 
-/**
- * Objeto que contiene las variables de entorno validadas y con valores por defecto.
- */
 export const env: {
     // Configuración de la base de datos.
     DB_TYPE: SupportedDbType;

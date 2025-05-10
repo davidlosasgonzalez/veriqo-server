@@ -69,6 +69,6 @@ http://localhost:3001/api
 
 - 📖 [Variables de entorno](./env-variables.md)
 - 🧩 [Arquitectura de Agentes](../architecture/agents.md)
-- 🔄 [Flujo Validator → FactChecker](../flows/validation-to-factcheck.md)
+- ↺ [Flujo Validator → FactChecker](../flows/validation-to-factcheck.md)
 
 > Para comandos de prueba `curl`, visita el [`README.md`](../../README.md).

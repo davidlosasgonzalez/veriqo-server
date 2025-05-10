@@ -1,17 +1,26 @@
-import { Injectable } from '@nestjs/common';
+import {
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+} from '@nestjs/common';
+
 import { AgentLogService } from './agent-log.service';
 import { ClaudeChatService } from './claude-chat.service';
 import { OpenAiChatService } from './openai-chat.service';
-import { LlmProvider } from '@/shared/types/enums/llm-provider.enum';
+
+import {
+    LLM_PROVIDER,
+    type LlmProvider,
+} from '@/shared/domain/enums/llm-provider.enum';
 import {
     ClaudeMessage,
     LlmMessage,
-} from '@/shared/types/parsed-types/llm-message.type';
-/**
- * Servicio que enruta mensajes a OpenAI o Claude, genera la respuesta y registra automáticamente el log de la interacción.
- */
+} from '@/shared/domain/value-objects/llm-message.vo';
+
 @Injectable()
 export class LlmRouterService {
+    private readonly logger = new Logger(LlmRouterService.name);
+
     constructor(
         private readonly openaiChatService: OpenAiChatService,
         private readonly claudeChatService: ClaudeChatService,
@@ -43,33 +52,35 @@ export class LlmRouterService {
         let model = '';
 
         try {
-            if (provider === LlmProvider.ANTHROPIC) {
+            if (provider === LLM_PROVIDER.ANTHROPIC) {
                 const claudeMessages: ClaudeMessage[] = messages.filter(
                     (msg): msg is ClaudeMessage =>
                         msg.role === 'user' || msg.role === 'assistant',
                 );
-                const claudeResponse =
+                const claudeRes =
                     await this.claudeChatService.chat(claudeMessages);
 
-                rawOutput = claudeResponse.rawOutput;
-                inputTokens = claudeResponse.inputTokens;
-                outputTokens = claudeResponse.outputTokens;
-                model = claudeResponse.model;
+                rawOutput = claudeRes.rawOutput;
+                inputTokens = claudeRes.inputTokens;
+                outputTokens = claudeRes.outputTokens;
+                model = claudeRes.model;
             } else {
-                const openaiResponse =
-                    await this.openaiChatService.chat(messages);
+                const openaiRes = await this.openaiChatService.chat(messages);
 
-                rawOutput = openaiResponse.rawOutput;
-                inputTokens = openaiResponse.inputTokens;
-                outputTokens = openaiResponse.outputTokens;
-                model = openaiResponse.model;
+                rawOutput = openaiRes.rawOutput;
+                inputTokens = openaiRes.inputTokens;
+                outputTokens = openaiRes.outputTokens;
+                model = openaiRes.model;
             }
         } catch (error) {
-            console.error(
-                '[LlmRouterService] Error al consultar el modelo:',
-                error,
+            const message = `Error comunicando con el modelo de IA (${provider})`;
+
+            this.logger.error(
+                `Error al consultar el modelo ${provider} para el agente "${agentName}"`,
+                error instanceof Error ? error.stack : '',
             );
-            throw new Error('Error comunicando con el modelo de IA.');
+
+            throw new InternalServerErrorException(message);
         }
 
         const end = process.hrtime.bigint();
