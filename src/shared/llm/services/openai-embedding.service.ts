@@ -1,58 +1,71 @@
 import { TiktokenModel } from '@dqbd/tiktoken';
-import { Injectable } from '@nestjs/common';
+import {
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+} from '@nestjs/common';
 import { OpenAI } from 'openai';
+
 import { AgentLogService } from './agent-log.service';
+
 import { env } from '@/config/env/env.config';
-import { IEmbeddingService } from '@/shared/interfaces/embedding-service.interface';
+import { IEmbeddingService } from '@/shared/domain/interfaces/embedding-service.interface';
 import { ensureValidEmbedding } from '@/shared/utils/embeddings/ensure-valid-embedding';
 import { countTokens } from '@/shared/utils/llm/count-tokens';
 
-/**
- * Implementación de IEmbeddingService que utiliza la API de OpenAI para generar embeddings,
- * registrando también los tokens de entrada utilizados.
- */
 @Injectable()
 export class OpenAiEmbeddingService implements IEmbeddingService {
+    private readonly logger = new Logger(OpenAiEmbeddingService.name);
     private readonly openai: OpenAI;
 
-    constructor(
-        private readonly agentLogService: AgentLogService, // Inyección del servicio de logs
-    ) {
+    constructor(private readonly agentLogService: AgentLogService) {
         const apiKey = env.OPENAI_API_KEY;
 
         if (!apiKey) {
-            throw new Error('No se encontró la clave API de OpenAI.');
+            const message = 'No se encontró la clave API de OpenAI.';
+            this.logger.error(message);
+
+            throw new InternalServerErrorException(message);
         }
 
         this.openai = new OpenAI({ apiKey });
     }
 
-    /**
-     * Genera un embedding vectorial para un texto dado y registra la operación en logs.
-     *
-     * @param text - Texto de entrada a vectorizar.
-     * @returns Vector numérico.
-     */
     async generate(text: string): Promise<number[]> {
         const start = process.hrtime.bigint();
         const inputTokens = countTokens(
             text,
             env.LLM_EMBEDDING_MODEL as TiktokenModel,
         );
-        const generate = async (): Promise<unknown> => {
-            const response = await this.openai.embeddings.create({
-                model: env.LLM_EMBEDDING_MODEL,
-                input: text,
-                encoding_format: 'float',
-            });
 
-            return response.data?.[0]?.embedding;
+        const generate = async (): Promise<unknown> => {
+            try {
+                const res = await this.openai.embeddings.create({
+                    model: env.LLM_EMBEDDING_MODEL,
+                    input: text,
+                    encoding_format: 'float',
+                });
+
+                return res.data?.[0]?.embedding;
+            } catch (err) {
+                const message = `Error generando embedding con OpenAI para el texto "${text.slice(0, 50)}..."`;
+
+                this.logger.error(
+                    message,
+                    err instanceof Error ? err.stack : '',
+                );
+
+                throw new InternalServerErrorException(
+                    'Error generando embedding con OpenAI',
+                );
+            }
         };
 
         const embedding = await ensureValidEmbedding(
             await generate(),
             generate,
         );
+
         const end = process.hrtime.bigint();
         const elapsedSeconds = Number(end - start) / 1_000_000_000;
 

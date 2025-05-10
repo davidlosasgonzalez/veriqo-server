@@ -2,51 +2,79 @@
 
 ## ¿Qué hace exactamente Veriqo?
 
-Veriqo es un backend de verificación factual automática. Detecta afirmaciones en textos, evalúa si son verificables y, si es necesario, lanza una verificación externa usando modelos LLM y búsquedas activas en Internet.
+Veriqo es un backend modular de verificación factual automática. Detecta afirmaciones verificables en un texto, decide si requieren verificación externa y, si es el caso, lanza una verificación automática usando modelos LLM y motores de búsqueda activos (Brave, Google, NewsAPI).
 
 ## ¿Necesito claves API para usarlo?
 
-Sí. Necesitarás claves para:
+Sí. El sistema requiere configuración de claves API para operar correctamente:
 
-- OpenAI (modelos y embeddings)
-- Anthropic (Claude)
+- OpenAI (GPT-4o y embeddings)
+- Anthropic Claude (usado por el ValidatorAgent)
 - Brave Search API
 - Google Custom Search API
 - NewsAPI
 
-Estas se configuran en el archivo `.env`. Consulta [Variables de entorno](../setup/env-variables.md).
+Puedes configurarlas en el archivo `.env`. Consulta [Variables de entorno](../setup/env-variables.md).
 
 ## ¿Dónde se almacena la información?
 
-Toda la trazabilidad (prompts, hallazgos, verificaciones, métricas) se guarda en una base de datos MySQL usando TypeORM.
+Toda la trazabilidad se guarda en una base de datos MySQL:
 
-## ¿Qué diferencia hay entre ValidatorAgent y FactCheckerAgent?
+- Prompts usados
+- Logs de ejecución
+- Hallazgos detectados
+- Razonamientos generados
+- Verificaciones externas
 
-- **ValidatorAgent** detecta afirmaciones relevantes y decide si requieren verificación factual.
-- **FactCheckerAgent** realiza la verificación consultando fuentes externas y devolviendo evidencia.
+Todo gestionado mediante TypeORM con entidades fuertemente tipadas.
+
+## ¿Cuál es la diferencia entre ValidatorAgent y FactCheckerAgent?
+
+- **ValidatorAgent** analiza texto, detecta afirmaciones y decide si pueden ser validadas internamente o necesitan evidencia externa.
+- **FactCheckerAgent** entra en acción cuando se requiere verificación externa. Consulta APIs de búsqueda, evalúa las fuentes y genera un razonamiento con GPT-4o.
+
+Ambos agentes están desacoplados y se comunican mediante eventos (`EventBus`).
 
 ## ¿Cómo puedo probar la API rápidamente?
 
-Usa los comandos `curl` del `README.md` o importa la colección Postman incluida en `docs/postman/veriqo-api-collection.json`.
+- Usa los comandos `curl` incluidos en el [`README.md`](../../README.md)
+- O importa la colección de Postman ubicada en `docs/postman/veriqo-api-collection.json`
 
 ## ¿Dónde puedo explorar la API visualmente?
 
-Puedes acceder a la documentación interactiva desde [`/api-docs`](http://localhost:3001/api-docs) con Swagger UI. También puedes usar Postman con la colección oficial incluida.
-
-## ¿Se puede escalar a producción?
-
-Sí. El sistema está diseñado con agentes desacoplados y lógica basada en eventos, lo que permite despliegues distribuidos, horizontal scaling y trazabilidad completa.
-
-## ¿Qué modelos puedo cambiar?
-
-Puedes configurar los modelos de cada agente en el archivo `.env` usando las variables `LLM_VALIDATOR_MODEL` y `LLM_FACTCHECKER_MODEL`.
-
-Para garantizar un tipado estricto y validación en tiempo de desarrollo, los modelos disponibles deben añadirse explícitamente en el enum `LlmModel`, ubicado en:
+Puedes usar Swagger UI accediendo a:
 
 ```
-src/shared/types/enums/llm-model.types.ts
+http://localhost:3001/api-docs
 ```
 
-Esto permite que el validador de entorno (`env.config.ts`) use `z.nativeEnum(LlmModel)` con soporte completo de tipos.
+Allí encontrarás documentados todos los endpoints, modelos y ejemplos de respuesta.
 
-Puedes configurar los modelos de cada agente en el archivo `.env` usando las variables `LLM_VALIDATOR_MODEL` y `LLM_FACTCHECKER_MODEL`.
+## ¿Veriqo se puede escalar a producción?
+
+Sí. Está diseñado para funcionar en entornos distribuidos. Gracias a su arquitectura desacoplada y basada en eventos, es posible:
+
+- Desplegar agentes en módulos o instancias independientes
+- Realizar horizontal scaling sin afectar el rendimiento
+- Lograr trazabilidad completa de todas las decisiones tomadas por el sistema
+
+## ¿Puedo usar otros modelos LLM?
+
+Sí. Veriqo permite configurar los modelos de cada agente desde `.env`:
+
+```env
+LLM_VALIDATOR_MODEL=claude-3-5-sonnet-20241022
+LLM_FACTCHECKER_MODEL=gpt-4o
+```
+
+Para garantizar validación estricta y evitar errores en tiempo de ejecución, todos los modelos permitidos deben estar registrados en el enum `LlmModel`:
+
+```
+src/shared/domain/enums/llm-model.enum.ts
+```
+
+Esto permite usar `z.nativeEnum(LlmModel)` en `env.config.ts`, con soporte completo de validación y autocompletado TypeScript.
+
+## ¿Veriqo está listo para producción?
+
+El sistema está actualmente en **versión beta**. Es funcional, modular y está siendo probado en entornos reales. Algunas características pueden cambiar o ajustarse antes del lanzamiento estable `1.0.0`. Sin embargo, su arquitectura ya es robusta y lista para despliegues controlados.

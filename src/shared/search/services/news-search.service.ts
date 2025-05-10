@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+
 import { env } from '@/config/env/env.config';
+import { NewsApiArticle } from '@/shared/types/raw-search-provider/news-api-article.type';
 import { RawSearchResult } from '@/shared/types/raw-search-result.type';
 
 /**
@@ -29,10 +31,12 @@ export class NewsSearchService {
             },
         });
 
-        return (response.data.articles ?? []).map((article: any) => ({
-            url: article.url,
-            title: article.title,
-            snippet: article.description ?? '',
-        }));
+        return (response.data.articles ?? []).map(
+            (article: NewsApiArticle) => ({
+                url: article.url,
+                title: article.title,
+                snippet: article.description ?? '',
+            }),
+        );
     }
 }

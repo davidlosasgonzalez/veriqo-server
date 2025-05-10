@@ -1,8 +1,8 @@
-# 📡 API – Core
+# 📁 API – Core
 
 Esta sección documenta los endpoints del módulo `Core`, que permiten acceder a la trazabilidad del sistema, métricas técnicas y configuración de prompts para los agentes.
 
-## 🧾 Endpoints disponibles
+## 📾 Endpoints disponibles
 
 | Método | Ruta            | Descripción                                                               |
 | ------ | --------------- | ------------------------------------------------------------------------- |

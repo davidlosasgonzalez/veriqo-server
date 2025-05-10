@@ -1,22 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { StructuredSearchPreview } from '@/domain/entities/structured-search-preview.entity';
+
+import { StructuredSearchPreview } from '@/shared/domain/value-objects/structured-search-preview.vo';
 import { RawSearchResult } from '@/shared/types/raw-search-result.type';
-import { preprocessSearchPreview } from '@/shared/utils/search/preprocess-search-preview';
+import { mapToStructuredPreview } from '@/shared/utils/search/map-to-structured-preview';
+import { mapToStructuredPreviews } from '@/shared/utils/search/map-to-structured-previews';
 
 /**
- * Servicio para convertir resultados crudos de búsqueda en vistas estructuradas.
+ * Servicio para convertir resultados crudos de búsqueda en vistas previas estructuradas.
  */
 @Injectable()
 export class StructuredPreviewService {
     /**
-     * Procesa una lista de resultados brutos a vistas previas estructuradas.
+     * Convierte múltiples resultados en vistas previas estructuradas.
      *
-     * @param results - Resultados crudos de la búsqueda.
-     * @returns Lista de vistas previas estructuradas.
+     * @param results - Resultados crudos (Brave, Google, NewsAPI...).
+     * @returns Vistas estructuradas listas para el dominio.
      */
-    async process(
+    async processMany(
         results: RawSearchResult[],
     ): Promise<StructuredSearchPreview[]> {
-        return results.map(preprocessSearchPreview);
+        return mapToStructuredPreviews(results);
+    }
+
+    /**
+     * Convierte un único resultado en una vista previa estructurada.
+     *
+     * @param result - Resultado crudo individual.
+     * @returns Vista estructurada.
+     */
+    async processOne(
+        result: RawSearchResult,
+    ): Promise<StructuredSearchPreview> {
+        return mapToStructuredPreview(result);
     }
 }

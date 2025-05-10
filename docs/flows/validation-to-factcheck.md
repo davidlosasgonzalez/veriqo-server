@@ -2,6 +2,29 @@
 
 Este documento describe el flujo completo que ocurre cuando una afirmación es analizada por el ValidatorAgent y, si es necesario, verificada por el FactCheckerAgent mediante fuentes externas.
 
+## 🧠 Visión general del flujo
+
+Cuando un usuario envía un texto, el sistema analiza si contiene afirmaciones verificables. El flujo sigue una lógica progresiva e inteligente que evita redundancias y optimiza recursos:
+
+1. **Extracción de afirmaciones**:
+   El `ValidatorAgent` detecta afirmaciones explícitas dentro del texto y genera un array de afirmaciones normalizadas.
+
+2. **Evitar duplicados**:
+   Para cada afirmación, se calcula su embedding semántico. Si ya existe un `Finding` similar y **resuelto** en base de datos, se reutiliza directamente y se relaciona con un nuevo `Finding`, sin necesidad de nuevos análisis.
+
+3. **Evaluación local**:
+   Si no hay coincidencias previas, se guarda un nuevo `Finding` y el `ValidatorAgent` intenta generar internamente un `Fact` con base en su conocimiento.
+
+4. **Verificación externa si es necesario**:
+   Si el `ValidatorAgent` no puede emitir un veredicto, se publica un evento `FACTUAL_CHECK_REQUIRED`. Este evento activa al `FactCheckerAgent`, quien consulta fuentes externas (Brave, Google, NewsAPI) y genera un razonamiento final junto con un `Fact` definitivo.
+
+5. **Respuesta al usuario**:
+
+    - Si se especificó `waitForFact: true`, el sistema espera el veredicto completo antes de responder.
+    - Si `false`, el usuario recibe una respuesta parcial y puede consultar el resultado completo más adelante.
+
+> Este flujo garantiza eficiencia, trazabilidad y máxima reutilización de conocimiento previamente generado.
+
 ## 🧠 Paso 1 – Análisis inicial (ValidatorAgent)
 
 1. El usuario envía un texto al endpoint `POST /validators/analyze`.
@@ -14,6 +37,7 @@ Este documento describe el flujo completo que ocurre cuando una afirmación es a
 2. Ejecuta búsquedas en Brave, Google CSE y NewsAPI.
 3. Utiliza GPT‑4o para sintetizar la información obtenida y generar una respuesta factual.
 4. Emite el evento `FACTUAL_VERIFICATION_RESULT` con:
+
     - Estado (`true`, `false`, `possibly_true`, `unknown`)
     - Fuentes consultadas y utilizadas
     - Timestamp de verificación

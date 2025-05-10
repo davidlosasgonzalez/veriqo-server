@@ -4,7 +4,7 @@ Este documento describe todas las tablas principales utilizadas por el sistema V
 
 ## 📊 Tablas principales
 
-### `agent_facts`
+### `facts`
 
 Registra los hechos verificados por el sistema, generados por agentes o a partir de verificaciones externas.
 
@@ -18,9 +18,9 @@ Registra los hechos verificados por el sistema, generados por agentes o a partir
 
 🔁 Relación:
 
-- Uno a muchos con `agent_findings`, `agent_verifications` y `agent_reasonings`.
+- Uno a muchos con `findings`, `verification`, `reasoning`.
 
-### `agent_findings`
+### `findings`
 
 Almacena las afirmaciones detectadas por el `ValidatorAgent` y sus embeddings.
 
@@ -36,40 +36,40 @@ Almacena las afirmaciones detectadas por el `ValidatorAgent` y sus embeddings.
 
 🔁 Relación:
 
-- Muchos a uno con `agent_facts`.
-- Uno a uno con `agent_finding_search_contexts`.
+- Muchos a uno con `facts`.
+- Uno a uno con `finding_search_contexts`.
 
-### `agent_finding_search_contexts`
+### `finding_search_contexts`
 
-Define el contexto de búsqueda asociado a un `AgentFinding`, útil para enriquecer verificaciones.
+Define el contexto de búsqueda asociado a un `Finding`, útil para enriquecer verificaciones.
 
 | Columna            | Tipo      | Descripción                                              |
 | ------------------ | --------- | -------------------------------------------------------- |
 | `id`               | UUID      | Identificador único del contexto.                        |
 | `search_query`     | JSON      | Consulta estructurada generada automáticamente.          |
 | `site_suggestions` | Array     | Sitios recomendados para enfocar la búsqueda (opcional). |
-| `finding_id`       | UUID      | Relación 1:1 con `agent_findings`.                       |
+| `finding_id`       | UUID      | Relación 1:1 con `findings`.                             |
 | `created_at`       | Timestamp | Fecha de creación.                                       |
 | `updated_at`       | Timestamp | Fecha de última modificación.                            |
 
-### `agent_verification`
+### `verification`
 
 Contiene los resultados de verificaciones externas realizadas por el `FactCheckerAgent`.
 
-| Columna             | Tipo      | Descripción                                            |
-| ------------------- | --------- | ------------------------------------------------------ |
-| `id`                | UUID      | Identificador único.                                   |
-| `engine_used`       | Enum      | Motor de búsqueda utilizado (`google`, `brave`, etc.). |
-| `confidence`        | Float     | Nivel de confianza en la verificación.                 |
-| `sources_retrieved` | JSON      | Fuentes recuperadas durante la búsqueda.               |
-| `sources_used`      | JSON      | Fuentes efectivamente utilizadas.                      |
-| `is_outdated`       | Boolean   | Indica si la verificación está desactualizada.         |
-| `reasoning_id`      | UUID      | Relación 1:1 con el razonamiento generado.             |
-| `fact_id`           | UUID      | Fact asociado.                                         |
-| `created_at`        | Timestamp | Fecha de creación.                                     |
-| `updated_at`        | Timestamp | Fecha de modificación.                                 |
+| Columna             | Tipo      | Descripción                                                                |
+| ------------------- | --------- | -------------------------------------------------------------------------- |
+| `id`                | UUID      | Identificador único.                                                       |
+| `engine_used`       | Enum      | Motor de búsqueda utilizado (`google_search`, `brave_search`, `news_api`). |
+| `confidence`        | Float     | Nivel de confianza en la verificación.                                     |
+| `sources_retrieved` | JSON      | Fuentes recuperadas durante la búsqueda.                                   |
+| `sources_used`      | JSON      | Fuentes efectivamente utilizadas.                                          |
+| `is_outdated`       | Boolean   | Indica si la verificación está desactualizada.                             |
+| `reasoning_id`      | UUID      | Relación 1:1 con el razonamiento generado.                                 |
+| `fact_id`           | UUID      | Fact asociado.                                                             |
+| `created_at`        | Timestamp | Fecha de creación.                                                         |
+| `updated_at`        | Timestamp | Fecha de modificación.                                                     |
 
-### `agent_reasoning`
+### `reasoning`
 
 Representa el razonamiento generado por el sistema para justificar un fact.
 

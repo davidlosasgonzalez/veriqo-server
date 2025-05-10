@@ -21,7 +21,7 @@ Las decisiones han sido guiadas por:
 - **Coste eficiente**: Claude 3.5 se elige por su buen balance coste/calidad para tareas de validación inicial.
 - **Integración limpia con Node.js**: todos los modelos se consumen vía API HTTP desde `AiRouterService`.
 
-## 🧩 Sistema de ruteo inteligente (`AiRouterService`)
+## 🧹 Sistema de ruteo inteligente (`AiRouterService`)
 
 Veriqo centraliza la selección y consumo de modelos mediante un servicio inteligente:
 
@@ -35,7 +35,7 @@ Veriqo centraliza la selección y consumo de modelos mediante un servicio inteli
 - Embeddings alternativos open source (`bge-small`, `e5-base`, etc.).
 - Clasificación previa para elegir automáticamente el mejor modelo según el tipo de afirmación.
 
-### 🔄 Modelos descartados en pruebas
+### ↺ Modelos descartados en pruebas
 
 Durante el desarrollo se evaluaron localmente:
 
@@ -47,7 +47,7 @@ Fueron descartados temporalmente por:
 - Altos requisitos de memoria sin aceleración GPU.
 - Rendimiento pobre en prompts complejos sin fine-tuning.
 
-> ⚠️ El equipo de desarrollo utiliza un portátil con 16 GB de RAM y sin GPU dedicada. Por ese motivo, los modelos locales provocaban una degradación importante de latencia, por lo que se priorizó el uso de APIs externas. Sin embargo, otros desarrolladores con hardware más potente pueden experimentar mejores resultados con modelos locales.
+> ⚠️ El equipo de desarrollo utiliza un portátil con 16 GB de RAM y sin GPU dedicada. Por ese motivo, los modelos locales provocaban una degradación importante de latencia, por lo que se priorizó el uso de APIs externas. Sin embargo, otros desarrolladores con hardware más potente pueden experimentar mejores resultados con modelos locales.
 
 ## 🛡️ Consideraciones de seguridad y trazabilidad
 

@@ -1,14 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+
 import { BraveSearchService } from './brave-search.service';
 import { GoogleSearchService } from './google-search.service';
 import { NewsSearchService } from './news-search.service';
+
 import { RawSearchResult } from '@/shared/types/raw-search-result.type';
 
-/**
- * Servicio de búsqueda que intenta usar varios motores de búsqueda en orden.
- */
 @Injectable()
 export class FallbackSearchService {
+    private readonly logger = new Logger(FallbackSearchService.name);
+
     constructor(
         private readonly braveSearchService: BraveSearchService,
         private readonly googleSearchService: GoogleSearchService,
@@ -28,8 +29,11 @@ export class FallbackSearchService {
             if (braveResults.length > 0) {
                 return braveResults;
             }
-        } catch (e) {
-            console.error('[Fallback] Brave Search failed:', e);
+        } catch (err) {
+            this.logger.warn(
+                `Brave Search failed for query: "${query}"`,
+                err instanceof Error ? err.stack : String(err),
+            );
         }
 
         try {
@@ -38,8 +42,11 @@ export class FallbackSearchService {
             if (googleResults.length > 0) {
                 return googleResults;
             }
-        } catch (e) {
-            console.error('[Fallback] Google Search failed:', e);
+        } catch (err) {
+            this.logger.warn(
+                `Google Search failed for query: "${query}"`,
+                err instanceof Error ? err.stack : String(err),
+            );
         }
 
         try {
@@ -48,8 +55,11 @@ export class FallbackSearchService {
             if (newsResults.length > 0) {
                 return newsResults;
             }
-        } catch (e) {
-            console.error('[Fallback] News Search failed:', e);
+        } catch (err) {
+            this.logger.warn(
+                `News Search failed for query: "${query}"`,
+                err instanceof Error ? err.stack : String(err),
+            );
         }
 
         return [];
